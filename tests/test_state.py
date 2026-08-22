@@ -9,6 +9,8 @@ from scrapling.parser import Adaptor
 
 from laptop_market_scraper.parsers.state import (
     StateCandidate,
+    StateListingResult,
+    TokopediaListingStateAdapter,
     decode_json_assignment,
     detect_flight_marker,
     extract_state_candidates,
@@ -241,3 +243,221 @@ def test_extract_state_candidates_empty_and_non_script_inputs():
     assert extract_state_candidates("") == []
     assert extract_state_candidates("<html><body><h1>Hello World</h1></body></html>") == []
     assert extract_state_candidates(Adaptor("<div>No scripts here</div>")) == []
+
+
+# ---------------------------------------------------------------------------
+# Task 3: TokopediaListingStateAdapter Unit Tests
+# ---------------------------------------------------------------------------
+
+
+def test_tokopedia_adapter_supports_next_data_candidate(tokopedia_search_state_html):
+    """Verify adapter supports __NEXT_DATA__ candidate from Next.js listing fixture."""
+    candidates = extract_state_candidates(tokopedia_search_state_html)
+    next_data_candidate = next(c for c in candidates if c.source == "__NEXT_DATA__")
+
+    adapter = TokopediaListingStateAdapter()
+    assert adapter.supports(next_data_candidate) is True
+    assert adapter.supports(next_data_candidate.payload) is True
+
+
+def test_tokopedia_adapter_supports_window_initial_state_candidate(tokopedia_search_raw_html):
+    """Verify adapter supports window.__INITIAL_STATE__ candidate from raw fixture."""
+    candidates = extract_state_candidates(tokopedia_search_raw_html)
+    initial_state_candidate = next(
+        c for c in candidates if c.source == "window.__INITIAL_STATE__"
+    )
+
+    adapter = TokopediaListingStateAdapter()
+    assert adapter.supports(initial_state_candidate) is True
+    assert adapter.supports(initial_state_candidate.payload) is True
+
+
+def test_tokopedia_adapter_extracts_search_state_fixture(tokopedia_search_state_html):
+    """Verify full extraction against tokopedia_search_state.html fixture."""
+    candidates = extract_state_candidates(tokopedia_search_state_html)
+    next_data_candidate = next(c for c in candidates if c.source == "__NEXT_DATA__")
+
+    adapter = TokopediaListingStateAdapter()
+    result = adapter.extract(next_data_candidate)
+
+    assert isinstance(result, StateListingResult)
+    assert result.source == "tokopedia_adapter"
+    assert len(result.product_urls) == 3
+    assert result.product_urls == (
+        "https://www.tokopedia.com/asus-official/laptop-asus-vivobook-14-a1404za-intel-core-i3-1215u-8gb-512gb-ssd",
+        "https://www.tokopedia.com/lenovo-gaming/lenovo-loq-15iax9-intel-core-i5-12450hx-16gb-512gb-rtx-2050",
+        "https://www.tokopedia.com/acer-store/acer-aspire-lite-14-al14-31p-intel-n100-8gb-512gb-ssd-win-11",
+    )
+    assert result.current_page == 1
+    assert result.total_pages == 50
+    assert result.total_products == 1200
+    assert result.has_next_page is True
+
+
+def test_tokopedia_adapter_extracts_search_raw_fixture(tokopedia_search_raw_html):
+    """Verify full extraction against tokopedia_search_raw.html fixture."""
+    candidates = extract_state_candidates(tokopedia_search_raw_html)
+    initial_state_candidate = next(
+        c for c in candidates if c.source == "window.__INITIAL_STATE__"
+    )
+
+    adapter = TokopediaListingStateAdapter()
+    result = adapter.extract(initial_state_candidate)
+
+    assert isinstance(result, StateListingResult)
+    assert result.source == "tokopedia_adapter"
+    assert len(result.product_urls) == 2
+    assert result.product_urls == (
+        "https://www.tokopedia.com/hp-indonesia/hp-pavilion-aero-13-be2001au-ryzen-5-7535u-16gb-512gb",
+        "https://www.tokopedia.com/dell-store/dell-inspiron-14-5430-core-i5-1335u-16gb-512gb-ssd",
+    )
+    assert result.current_page == 2
+    assert result.total_pages == 20
+    assert result.total_products == 480
+    assert result.has_next_page is True
+
+
+def test_tokopedia_adapter_deduplicates_urls_preserving_order():
+    """Verify duplicate URLs and URL fragments are cleaned and deduplicated in discovery order."""
+    payload = {
+        "searchProduct": {
+            "data": {
+                "products": [
+                    {"url": "https://www.tokopedia.com/shop/item-1#section-1"},
+                    {"url": "https://www.tokopedia.com/shop/item-2"},
+                    {"url": "https://www.tokopedia.com/shop/item-1#other-fragment"},
+                    {"url": "https://www.tokopedia.com/shop/item-3"},
+                    {"url": "https://www.tokopedia.com/shop/item-2"},
+                ],
+                "pagination": {
+                    "currentPage": 1,
+                    "totalPages": 5,
+                    "totalData": 25,
+                    "hasNextPage": True,
+                },
+            }
+        }
+    }
+    adapter = TokopediaListingStateAdapter()
+    assert adapter.supports(payload) is True
+    result = adapter.extract(payload)
+
+    assert result.product_urls == (
+        "https://www.tokopedia.com/shop/item-1",
+        "https://www.tokopedia.com/shop/item-2",
+        "https://www.tokopedia.com/shop/item-3",
+    )
+    assert result.current_page == 1
+    assert result.total_pages == 5
+    assert result.total_products == 25
+    assert result.has_next_page is True
+
+
+def test_tokopedia_adapter_handles_relative_urls():
+    """Verify relative product URLs are converted to canonical absolute URLs."""
+    payload = {
+        "displaySearchQuery": {
+            "data": {
+                "products": [
+                    {"url": "/official-store/laptop-1"},
+                    {"url": "/gaming-store/laptop-2"},
+                ]
+            }
+        }
+    }
+    adapter = TokopediaListingStateAdapter()
+    result = adapter.extract(payload)
+
+    assert result.product_urls == (
+        "https://www.tokopedia.com/official-store/laptop-1",
+        "https://www.tokopedia.com/gaming-store/laptop-2",
+    )
+    assert result.current_page is None
+    assert result.total_pages is None
+    assert result.total_products is None
+    assert result.has_next_page is None
+
+
+def test_tokopedia_adapter_empty_products_list():
+    """Verify empty product results produce an empty tuple and preserve pagination."""
+    payload = {
+        "props": {
+            "pageProps": {
+                "initialState": {
+                    "searchProduct": {
+                        "data": {
+                            "products": [],
+                            "pagination": {
+                                "currentPage": 1,
+                                "totalPages": 0,
+                                "totalData": 0,
+                                "hasNextPage": False,
+                            },
+                        }
+                    }
+                }
+            }
+        }
+    }
+    adapter = TokopediaListingStateAdapter()
+    assert adapter.supports(payload) is True
+    result = adapter.extract(payload)
+
+    assert result.product_urls == ()
+    assert result.current_page == 1
+    assert result.total_pages == 0
+    assert result.total_products == 0
+    assert result.has_next_page is False
+
+
+def test_tokopedia_adapter_rejects_unsupported_payload():
+    """Verify unsupported payload is rejected by supports() and raises ValueError in extract()."""
+    adapter = TokopediaListingStateAdapter()
+
+    assert adapter.supports(None) is False
+    assert adapter.supports(12345) is False
+    assert adapter.supports("random text") is False
+    assert adapter.supports({"user": {"name": "Alice"}}) is False
+    assert adapter.supports(StateCandidate(source="generic", payload={"a": 1}, script_index=0)) is False
+
+    with pytest.raises(ValueError, match="Payload does not match supported Tokopedia listing state structure"):
+        adapter.extract({"user": {"name": "Alice"}})
+
+
+def test_tokopedia_adapter_pagination_type_conversions_and_inferences():
+    """Verify string integer conversion and total_pages / has_next_page calculation."""
+    payload = {
+        "search_product": {
+            "data": {
+                "products": [
+                    {"url": "https://www.tokopedia.com/store/item-1"},
+                ],
+                "pagination": {
+                    "currentPage": "3",
+                    "totalData": "90",
+                    "pageSize": "30",
+                },
+            }
+        }
+    }
+    adapter = TokopediaListingStateAdapter()
+    result = adapter.extract(payload)
+
+    assert result.current_page == 3
+    assert result.total_products == 90
+    assert result.total_pages == 3
+    assert result.has_next_page is False
+
+
+def test_state_listing_result_immutability():
+    """Verify StateListingResult is an immutable dataclass."""
+    res = StateListingResult(
+        product_urls=("https://www.tokopedia.com/store/item-1",),
+        current_page=1,
+        total_pages=10,
+        total_products=200,
+        has_next_page=True,
+    )
+    with pytest.raises(AttributeError):
+        res.current_page = 2  # type: ignore[misc]
+
