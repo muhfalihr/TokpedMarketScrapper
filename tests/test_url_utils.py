@@ -2,8 +2,10 @@
 import pytest
 
 from laptop_market_scraper.url_utils import (
+    build_page_url,
     canonicalize_product_url,
     is_tokopedia_product_url,
+    listing_fingerprint,
     make_listing_key,
 )
 
@@ -125,4 +127,111 @@ def test_is_tokopedia_product_url_handles_empty_and_non_string_inputs():
     assert is_tokopedia_product_url(None) is False  # type: ignore[arg-type]
     assert is_tokopedia_product_url(12345) is False  # type: ignore[arg-type]
     assert is_tokopedia_product_url(["https://www.tokopedia.com/a/b"]) is False  # type: ignore[arg-type]
+
+
+# ---------------------------------------------------------------------------
+# build_page_url Unit Tests
+# ---------------------------------------------------------------------------
+
+
+def test_build_page_url_appends_page_when_absent():
+    """Verify build_page_url appends page parameter when no query exists."""
+    url = "https://www.tokopedia.com/search"
+    assert build_page_url(url, 2) == "https://www.tokopedia.com/search?page=2"
+
+
+def test_build_page_url_preserves_existing_query_params():
+    """Verify build_page_url preserves other query params and appends page."""
+    url = "https://www.tokopedia.com/search?q=laptop&st=product"
+    result = build_page_url(url, 2)
+    assert result == "https://www.tokopedia.com/search?q=laptop&st=product&page=2"
+
+
+def test_build_page_url_updates_existing_page_param():
+    """Verify build_page_url updates existing page parameter in-place."""
+    url = "https://www.tokopedia.com/search?q=laptop&page=1&st=product"
+    result = build_page_url(url, 3)
+    assert result == "https://www.tokopedia.com/search?q=laptop&page=3&st=product"
+
+
+def test_build_page_url_preserves_repeated_and_blank_query_params():
+    """Verify build_page_url preserves multi-value parameters and blank values."""
+    url = "https://www.tokopedia.com/search?brand=asus&brand=lenovo&filter=&page=2"
+    result = build_page_url(url, 4)
+    assert result == "https://www.tokopedia.com/search?brand=asus&brand=lenovo&filter=&page=4"
+
+
+def test_build_page_url_preserves_fragment():
+    """Verify build_page_url retains URL fragment if present."""
+    url = "https://www.tokopedia.com/search?q=laptop#product-section"
+    result = build_page_url(url, 2)
+    assert result == "https://www.tokopedia.com/search?q=laptop&page=2#product-section"
+
+
+def test_build_page_url_handles_empty_and_invalid_inputs():
+    """Verify build_page_url handles empty or non-string inputs safely."""
+    assert build_page_url("", 2) == ""
+    assert build_page_url(None, 2) == ""  # type: ignore[arg-type]
+
+
+# ---------------------------------------------------------------------------
+# listing_fingerprint Unit Tests
+# ---------------------------------------------------------------------------
+
+
+def test_listing_fingerprint_deterministic_and_order_independent():
+    """Verify fingerprint is consistent regardless of product URL sequence order."""
+    urls_1 = [
+        "https://www.tokopedia.com/shop-a/product-1",
+        "https://www.tokopedia.com/shop-b/product-2",
+        "https://www.tokopedia.com/shop-c/product-3",
+    ]
+    urls_2 = [
+        "https://www.tokopedia.com/shop-c/product-3",
+        "https://www.tokopedia.com/shop-a/product-1",
+        "https://www.tokopedia.com/shop-b/product-2",
+    ]
+    fp_1 = listing_fingerprint(urls_1)
+    fp_2 = listing_fingerprint(urls_2)
+
+    assert fp_1 == fp_2
+    assert len(fp_1) == 64  # SHA-256 hex length
+
+
+def test_listing_fingerprint_strips_tracking_params():
+    """Verify URLs with tracking parameters produce identical fingerprints to clean URLs."""
+    urls_clean = [
+        "https://www.tokopedia.com/shop/item-1",
+        "https://www.tokopedia.com/shop/item-2",
+    ]
+    urls_with_tracking = [
+        "https://www.tokopedia.com/shop/item-1?utm_source=google&utm_medium=cpc&src=topads#review",
+        "https://www.tokopedia.com/shop/item-2?extParam=src%3Dsearch&ref=banner",
+    ]
+    assert listing_fingerprint(urls_clean) == listing_fingerprint(urls_with_tracking)
+
+
+def test_listing_fingerprint_handles_empty_and_duplicate_sequences():
+    """Verify empty sequences, blank strings, and duplicates are handled deterministically."""
+    fp_empty = listing_fingerprint([])
+    assert isinstance(fp_empty, str)
+    assert len(fp_empty) == 64
+
+    fp_blanks = listing_fingerprint(["", "   "])
+    assert fp_blanks == fp_empty
+
+    urls_with_dups = [
+        "https://www.tokopedia.com/shop/item-1",
+        "https://www.tokopedia.com/shop/item-1",
+    ]
+    urls_single = ["https://www.tokopedia.com/shop/item-1"]
+    assert listing_fingerprint(urls_with_dups) == listing_fingerprint(urls_single)
+
+
+def test_listing_fingerprint_different_sets_produce_different_hashes():
+    """Verify different product sets produce distinct hashes."""
+    urls_a = ["https://www.tokopedia.com/shop/asus-zenbook"]
+    urls_b = ["https://www.tokopedia.com/shop/lenovo-thinkpad"]
+    assert listing_fingerprint(urls_a) != listing_fingerprint(urls_b)
+
 

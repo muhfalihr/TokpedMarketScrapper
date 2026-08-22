@@ -195,3 +195,149 @@ async def test_parse_product_rejects_accessory(spider, mock_store):
 
     assert len(results) == 0
     mock_store.save_rejected.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Task 6: Pagination Safety & Loop Prevention Spider Tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_spider_stops_pagination_on_duplicate_fingerprint(mock_store):
+    """Verify spider detects duplicate product URL fingerprint and stops pagination loop."""
+    spider = TokopediaLaptopSpider(crawl_run_id="test-run", store=mock_store)
+
+    page_1_html = """
+    <a href="https://www.tokopedia.com/shop/item-1">Item 1</a>
+    <a href="https://www.tokopedia.com/shop/item-2">Item 2</a>
+    <a rel="next" href="https://www.tokopedia.com/search?page=2">Next</a>
+    """
+    resp_1 = Adaptor(page_1_html, url="https://www.tokopedia.com/search?page=1")
+    resp_1.meta = {"source_url": "https://www.tokopedia.com/search?page=1", "source_page": 1}
+
+    results_1 = [r async for r in spider.parse_listing(resp_1)]
+    # 2 products + 1 next page request
+    assert len(results_1) == 3
+    assert any("page=2" in r.url for r in results_1)
+
+    # Page 2 returns the exact same products (looping server response)
+    page_2_html = """
+    <a href="https://www.tokopedia.com/shop/item-1">Item 1</a>
+    <a href="https://www.tokopedia.com/shop/item-2">Item 2</a>
+    <a rel="next" href="https://www.tokopedia.com/search?page=3">Next</a>
+    """
+    resp_2 = Adaptor(page_2_html, url="https://www.tokopedia.com/search?page=2")
+    resp_2.meta = {"source_url": "https://www.tokopedia.com/search?page=2", "source_page": 2}
+
+    results_2 = [r async for r in spider.parse_listing(resp_2)]
+    # 2 products yielded, but NO next page request because duplicate fingerprint was detected
+    assert len(results_2) == 2
+    assert not any("page=3" in r.url for r in results_2)
+
+
+@pytest.mark.asyncio
+async def test_spider_stops_pagination_on_self_referential_url(mock_store):
+    """Verify spider aborts pagination if next_url is identical to current_url."""
+    spider = TokopediaLaptopSpider(crawl_run_id="test-run", store=mock_store)
+
+    # State data claims next_page is 2, but current_url is already page=2
+    mock_page_data = ListingPageData(
+        product_urls=("https://www.tokopedia.com/shop/item-1",),
+        current_page=2,
+        next_page=2,
+        has_next_page=True,
+        total_products=20,
+        state_source="__NEXT_DATA__",
+        dom_fallback_used=False,
+        diagnostics=ListingDiagnostics(),
+    )
+
+    resp = Adaptor("<html></html>", url="https://www.tokopedia.com/search?page=2")
+    resp.meta = {"source_url": "https://www.tokopedia.com/search?page=2", "source_page": 2}
+
+    with patch(
+        "laptop_market_scraper.spiders.tokopedia_laptop.parse_listing_page",
+        return_value=mock_page_data,
+    ):
+        results = [r async for r in spider.parse_listing(resp)]
+        # 1 product request yielded, 0 next page requests
+        assert len(results) == 1
+        assert results[0].url == "https://www.tokopedia.com/shop/item-1"
+
+
+@pytest.mark.asyncio
+async def test_spider_respects_max_pages_limit(mock_store):
+    """Verify spider stops paginating once max_pages is reached."""
+    spider = TokopediaLaptopSpider(crawl_run_id="test-run", store=mock_store, max_pages=2)
+
+    # Page 1: source_page=1 < max_pages(2) -> yields next page request
+    mock_page_data_1 = ListingPageData(
+        product_urls=("https://www.tokopedia.com/shop/item-1",),
+        current_page=1,
+        next_page=2,
+        has_next_page=True,
+        total_products=100,
+        state_source="__NEXT_DATA__",
+        dom_fallback_used=False,
+        diagnostics=ListingDiagnostics(),
+    )
+    resp_1 = Adaptor("<html></html>", url="https://www.tokopedia.com/search?page=1")
+    resp_1.meta = {"source_url": "https://www.tokopedia.com/search?page=1", "source_page": 1}
+
+    with patch(
+        "laptop_market_scraper.spiders.tokopedia_laptop.parse_listing_page",
+        return_value=mock_page_data_1,
+    ):
+        results_1 = [r async for r in spider.parse_listing(resp_1)]
+        assert len(results_1) == 2
+        assert any("page=2" in r.url for r in results_1)
+
+    # Page 2: source_page=2 >= max_pages(2) -> does not yield next page request
+    mock_page_data_2 = ListingPageData(
+        product_urls=("https://www.tokopedia.com/shop/item-2",),
+        current_page=2,
+        next_page=3,
+        has_next_page=True,
+        total_products=100,
+        state_source="__NEXT_DATA__",
+        dom_fallback_used=False,
+        diagnostics=ListingDiagnostics(),
+    )
+    resp_2 = Adaptor("<html></html>", url="https://www.tokopedia.com/search?page=2")
+    resp_2.meta = {"source_url": "https://www.tokopedia.com/search?page=2", "source_page": 2}
+
+    with patch(
+        "laptop_market_scraper.spiders.tokopedia_laptop.parse_listing_page",
+        return_value=mock_page_data_2,
+    ):
+        results_2 = [r async for r in spider.parse_listing(resp_2)]
+        assert len(results_2) == 1
+        assert results_2[0].url == "https://www.tokopedia.com/shop/item-2"
+
+
+@pytest.mark.asyncio
+async def test_spider_stops_pagination_when_has_next_page_is_false(mock_store):
+    """Verify spider does not yield next page request when has_next_page is False."""
+    spider = TokopediaLaptopSpider(crawl_run_id="test-run", store=mock_store)
+
+    mock_page_data = ListingPageData(
+        product_urls=("https://www.tokopedia.com/shop/item-final",),
+        current_page=10,
+        next_page=None,
+        has_next_page=False,
+        total_products=100,
+        state_source="__NEXT_DATA__",
+        dom_fallback_used=False,
+        diagnostics=ListingDiagnostics(),
+    )
+    resp = Adaptor("<html></html>", url="https://www.tokopedia.com/search?page=10")
+    resp.meta = {"source_url": "https://www.tokopedia.com/search?page=10", "source_page": 10}
+
+    with patch(
+        "laptop_market_scraper.spiders.tokopedia_laptop.parse_listing_page",
+        return_value=mock_page_data,
+    ):
+        results = [r async for r in spider.parse_listing(resp)]
+        assert len(results) == 1
+        assert results[0].url == "https://www.tokopedia.com/shop/item-final"
+

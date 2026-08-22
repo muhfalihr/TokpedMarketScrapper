@@ -1,7 +1,24 @@
-"""URL canonicalization and listing identity."""
+from __future__ import annotations
 
+from collections.abc import Sequence
 from hashlib import sha256
-from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+from urllib.parse import (
+    parse_qs,
+    parse_qsl,
+    urlencode,
+    urlparse,
+    urlsplit,
+    urlunparse,
+    urlunsplit,
+)
+
+__all__ = (
+    "build_page_url",
+    "canonicalize_product_url",
+    "is_tokopedia_product_url",
+    "listing_fingerprint",
+    "make_listing_key",
+)
 
 _TRACKING_PARAMS = frozenset({
     "utm_source",
@@ -205,3 +222,54 @@ def make_listing_key(product_id: str | None, canonical_url: str) -> str:
     if product_id:
         return f"pid:{product_id}"
     return f"url:{sha256(canonical_url.encode()).hexdigest()[:16]}"
+
+
+def build_page_url(current_url: str, next_page: int) -> str:
+    """Construct a pagination URL for *next_page* while preserving existing query params.
+
+    Uses urllib.parse (urlsplit, parse_qsl, urlencode, urlunsplit) to update or
+    insert the `page` query parameter while maintaining query parameter order.
+    """
+    if not current_url or not isinstance(current_url, str):
+        return ""
+
+    parts = urlsplit(current_url)
+    query_pairs = parse_qsl(parts.query, keep_blank_values=True)
+
+    updated = False
+    new_query_pairs: list[tuple[str, str]] = []
+    for key, val in query_pairs:
+        if key == "page":
+            new_query_pairs.append((key, str(next_page)))
+            updated = True
+        else:
+            new_query_pairs.append((key, val))
+
+    if not updated:
+        new_query_pairs.append(("page", str(next_page)))
+
+    new_query = urlencode(new_query_pairs, doseq=True)
+    return urlunsplit(parts._replace(query=new_query))
+
+
+def listing_fingerprint(product_urls: Sequence[str]) -> str:
+    """Generate a deterministic SHA-256 fingerprint for a sequence of product URLs.
+
+    Canonicalizes each non-empty product URL, removes duplicates, sorts them
+    lexicographically, and computes the SHA-256 hash of the newline-delimited result.
+    """
+    if not product_urls:
+        return sha256(b"").hexdigest()
+
+    canonical_set = {
+        canonicalize_product_url(u)
+        for u in product_urls
+        if isinstance(u, str) and u.strip()
+    }
+    if not canonical_set:
+        return sha256(b"").hexdigest()
+
+    sorted_urls = sorted(canonical_set)
+    payload = "\n".join(sorted_urls).encode("utf-8")
+    return sha256(payload).hexdigest()
+

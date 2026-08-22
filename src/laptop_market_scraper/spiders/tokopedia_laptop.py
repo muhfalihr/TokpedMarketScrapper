@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from typing import Any, ClassVar
-from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from scrapling.spiders import Request, Spider
 
@@ -14,6 +13,7 @@ from laptop_market_scraper.models import ListingSeed
 from laptop_market_scraper.parsers.listing import parse_listing_page
 from laptop_market_scraper.parsers.product import parse_product
 from laptop_market_scraper.storage import SQLiteStore, normalize_product
+from laptop_market_scraper.url_utils import build_page_url, listing_fingerprint
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +38,7 @@ class TokopediaLaptopSpider(Spider):
         store: SQLiteStore | None = None,
         seed_config: str = "config/seeds.yaml",
         max_items: int | None = None,
+        max_pages: int | None = None,
         browser_fallback: bool = False,
         *args: Any,
         **kwargs: Any,
@@ -47,8 +48,10 @@ class TokopediaLaptopSpider(Spider):
         self.store = store
         self.seed_config = seed_config
         self.max_items = max_items
+        self.max_pages = max_pages
         self.browser_fallback = browser_fallback
         self.items_scraped = 0
+        self.seen_listing_fingerprints: set[str] = set()
 
     async def parse(self, response):
         pass
@@ -70,16 +73,35 @@ class TokopediaLaptopSpider(Spider):
     async def parse_listing(self, response):
         meta = response.meta or {}
         listing_data = parse_listing_page(response)
+        current_url = str(getattr(response, "url", "") or meta.get("source_url", ""))
+        source_page = meta.get("source_page", listing_data.current_page or 1)
+
+        # 1. Page Fingerprinting & Repeated Product Set Detection
+        fp = listing_fingerprint(listing_data.product_urls)
+        is_duplicate = False
+        if listing_data.product_urls:
+            if fp in self.seen_listing_fingerprints:
+                logger.warning(
+                    "Duplicate listing fingerprint detected (%s) for URL %s (page %s). Stopping pagination.",
+                    fp[:12],
+                    current_url,
+                    source_page,
+                )
+                is_duplicate = True
+            else:
+                self.seen_listing_fingerprints.add(fp)
 
         logger.info(
-            "Parsed listing page %s: %d product URLs discovered (dom_fallback=%s, source=%s, next_page=%s)",
-            getattr(response, "url", "unknown"),
+            "Parsed listing page %s: %d product URLs discovered (dom_fallback=%s, source=%s, next_page=%s, fp=%s)",
+            current_url,
             len(listing_data.product_urls),
             listing_data.dom_fallback_used,
             listing_data.state_source,
             listing_data.next_page,
+            fp[:8] if fp else "empty",
         )
 
+        # 2. Yield product requests if max_items not yet reached
         for link in listing_data.product_urls:
             if self.max_items and self.items_scraped >= self.max_items:
                 break
@@ -91,29 +113,64 @@ class TokopediaLaptopSpider(Spider):
                     "source_type": meta.get("source_type"),
                     "source_query": meta.get("source_query"),
                     "source_url": meta.get("source_url"),
-                    "source_page": meta.get("source_page", 1),
+                    "source_page": source_page,
                 },
             )
 
-        if (
-            (not self.max_items or self.items_scraped < self.max_items)
-            and listing_data.has_next_page
-            and listing_data.next_page
-        ):
-            current_url = str(getattr(response, "url", "") or meta.get("source_url", ""))
-            if current_url:
-                parsed = urlparse(current_url)
-                qs = parse_qs(parsed.query, keep_blank_values=True)
-                qs["page"] = [str(listing_data.next_page)]
-                next_url = urlunparse(parsed._replace(query=urlencode(qs, doseq=True)))
+        # 3. Pagination Safety Checks
+        # Stop on duplicate listing content
+        if is_duplicate:
+            return
 
-                new_meta = meta.copy()
-                new_meta["source_page"] = listing_data.next_page
-                yield Request(
-                    url=next_url,
-                    callback=self.parse_listing,
-                    meta=new_meta,
-                )
+        # Stop if max_items reached
+        if self.max_items and self.items_scraped >= self.max_items:
+            return
+
+        # Stop if max_pages limit reached on current page
+        if self.max_pages is not None and source_page >= self.max_pages:
+            logger.info(
+                "Reached max_pages limit (%d >= %d) for %s. Stopping pagination.",
+                source_page,
+                self.max_pages,
+                current_url,
+            )
+            return
+
+        # Stop if no next page evidence
+        if not (listing_data.has_next_page and listing_data.next_page):
+            return
+
+        # Stop if next_page exceeds max_pages
+        if self.max_pages is not None and listing_data.next_page > self.max_pages:
+            logger.info(
+                "Next page %d exceeds max_pages limit (%d). Stopping pagination.",
+                listing_data.next_page,
+                self.max_pages,
+            )
+            return
+
+        if not current_url:
+            return
+
+        # Construct next URL safely preserving query parameters
+        next_url = build_page_url(current_url, listing_data.next_page)
+
+        # Stop on self-referential URL loop
+        if not next_url or next_url == current_url:
+            logger.warning(
+                "Self-referential next page URL detected (%s == %s). Stopping pagination.",
+                next_url,
+                current_url,
+            )
+            return
+
+        new_meta = meta.copy()
+        new_meta["source_page"] = listing_data.next_page
+        yield Request(
+            url=next_url,
+            callback=self.parse_listing,
+            meta=new_meta,
+        )
 
     async def parse_product_page(self, response):
         meta = response.meta or {}

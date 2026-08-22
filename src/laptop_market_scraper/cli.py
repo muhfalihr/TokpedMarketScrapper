@@ -26,6 +26,7 @@ def crawl(
     seed_config: Path = typer.Option("config/seeds.yaml", help="Path to seed configuration"),
     crawl_dir: Path = typer.Option("crawl_state/tokopedia_laptop", help="Directory for crawl state and database"),
     max_items: int = typer.Option(None, help="Maximum number of items to crawl"),
+    max_pages: int = typer.Option(None, help="Maximum number of pages to crawl per seed"),
     browser_fallback: bool = typer.Option(False, help="Use browser fallback for dynamic content"),
 ):
     """Run the Scrapling crawler to collect laptop data."""
@@ -40,6 +41,7 @@ def crawl(
         store=store,
         seed_config=str(seed_config),
         max_items=max_items,
+        max_pages=max_pages,
         browser_fallback=browser_fallback,
     )
 

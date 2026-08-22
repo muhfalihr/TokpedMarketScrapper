@@ -1,10 +1,8 @@
-"""Unified listing parser for Tokopedia search and category pages."""
-
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from urllib.parse import parse_qs, urlencode, urljoin, urlparse, urlunparse
+from urllib.parse import parse_qs, urljoin, urlparse
 
 from scrapling.parser import Adaptor
 
@@ -17,7 +15,11 @@ from laptop_market_scraper.parsers.state import (
     extract_state_candidates,
     score_candidates,
 )
-from laptop_market_scraper.url_utils import is_tokopedia_product_url
+from laptop_market_scraper.url_utils import (
+    build_page_url,
+    is_tokopedia_product_url,
+    listing_fingerprint,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +36,10 @@ _NON_PRODUCT_PATH_PREFIXES = (
 __all__ = (
     "ListingDiagnostics",
     "ListingPageData",
+    "build_page_url",
     "extract_next_page",
     "extract_product_links",
+    "listing_fingerprint",
     "parse_listing_page",
 )
 
@@ -112,19 +116,66 @@ def _extract_dom_next_page(response: object) -> str | None:
     return None
 
 
-def _compute_next_page(
+def _extract_page_from_url(url: str) -> int | None:
+    """Extract integer page number from a URL query string if present."""
+    if not url:
+        return None
+    try:
+        parsed = urlparse(url)
+        qs = parse_qs(parsed.query, keep_blank_values=True)
+        if "page" in qs and qs["page"]:
+            val = qs["page"][0].strip()
+            if val.isdigit():
+                return int(val)
+    except Exception:
+        pass
+    return None
+
+
+def _resolve_pagination(
+    response: object,
     current_page: int | None,
     total_pages: int | None,
     has_next_page: bool | None,
-) -> int | None:
-    """Determine the next page number from pagination indicators."""
-    if current_page is None:
-        return None
+    total_products: int | None = None,
+) -> tuple[int | None, int | None, bool | None]:
+    """Resolve current_page, next_page, and has_next_page using the 4-priority hierarchy.
+
+    Hierarchy:
+    1. Explicit hasNextPage boolean (Priority 1)
+    2. currentPage < totalPages (Priority 2)
+    3. ceil(totalData / pageSize) (Priority 3, computed into total_pages upstream)
+    4. DOM <a rel="next"> fallback (Priority 4)
+    If no evidence: has_next_page = None, next_page = None.
+    """
+    base_url = str(response.url) if hasattr(response, "url") else ""
+    url_page = _extract_page_from_url(base_url)
+    eff_curr = current_page if current_page is not None else url_page
+
+    # Priority 1: Explicit has_next_page
     if has_next_page is True:
-        return current_page + 1
-    if has_next_page is None and total_pages is not None and current_page < total_pages:
-        return current_page + 1
-    return None
+        curr = eff_curr or 1
+        return curr, curr + 1, True
+    if has_next_page is False:
+        return eff_curr, None, False
+
+    # Priority 2 & 3: Total pages comparison
+    if total_pages is not None:
+        curr = eff_curr or 1
+        if curr < total_pages:
+            return curr, curr + 1, True
+        return eff_curr, None, False
+
+    # Priority 4: DOM rel=next fallback
+    dom_next_url = _extract_dom_next_page(response)
+    if dom_next_url:
+        dom_next_page = _extract_page_from_url(dom_next_url)
+        curr = eff_curr or 1
+        next_pg = dom_next_page if dom_next_page is not None else curr + 1
+        return curr, next_pg, True
+
+    # No pagination evidence
+    return eff_curr, None, None
 
 
 def parse_listing_page(response: object) -> ListingPageData:
@@ -177,15 +228,19 @@ def parse_listing_page(response: object) -> ListingPageData:
 
                 if res.product_urls:
                     diagnostics.dom_fallback_used = False
-                    next_page = _compute_next_page(
-                        res.current_page, res.total_pages, res.has_next_page
+                    curr, nxt, has_nxt = _resolve_pagination(
+                        response,
+                        res.current_page,
+                        res.total_pages,
+                        res.has_next_page,
+                        res.total_products,
                     )
 
                     return ListingPageData(
                         product_urls=res.product_urls,
-                        current_page=res.current_page,
-                        next_page=next_page,
-                        has_next_page=res.has_next_page,
+                        current_page=curr,
+                        next_page=nxt,
+                        has_next_page=has_nxt,
                         total_products=res.total_products,
                         state_source=cand.source or "tokopedia_adapter",
                         dom_fallback_used=False,
@@ -205,15 +260,19 @@ def parse_listing_page(response: object) -> ListingPageData:
             diagnostics.product_urls_rejected = 0
             diagnostics.dom_fallback_used = False
 
-            next_page = _compute_next_page(
-                generic_res.current_page, generic_res.total_pages, generic_res.has_next_page
+            curr, nxt, has_nxt = _resolve_pagination(
+                response,
+                generic_res.current_page,
+                generic_res.total_pages,
+                generic_res.has_next_page,
+                generic_res.total_products,
             )
 
             return ListingPageData(
                 product_urls=generic_res.product_urls,
-                current_page=generic_res.current_page,
-                next_page=next_page,
-                has_next_page=generic_res.has_next_page,
+                current_page=curr,
+                next_page=nxt,
+                has_next_page=has_nxt,
                 total_products=generic_res.total_products,
                 state_source=best.candidate.source or "generic_recovery",
                 dom_fallback_used=False,
@@ -245,45 +304,13 @@ def parse_listing_page(response: object) -> ListingPageData:
         else:
             diagnostics.product_urls_rejected += 1
 
-    # DOM Pagination
-    next_url_dom: str | None = None
-    for anchor in (page.css('a[rel="next"]') if hasattr(page, "css") else []):
-        href = anchor.attrib.get("href", "")
-        if href:
-            next_url_dom = urljoin(base_url, href)
-            break
-
-    current_page = None
-    next_page = None
-    has_next_page = None
-
-    if base_url:
-        parsed_base = urlparse(base_url)
-        qs_base = parse_qs(parsed_base.query)
-        if "page" in qs_base and qs_base["page"] and qs_base["page"][0].isdigit():
-            current_page = int(qs_base["page"][0])
-
-    if next_url_dom:
-        has_next_page = True
-        parsed_next = urlparse(next_url_dom)
-        qs_next = parse_qs(parsed_next.query)
-        if "page" in qs_next and qs_next["page"] and qs_next["page"][0].isdigit():
-            next_page = int(qs_next["page"][0])
-        elif current_page is not None:
-            next_page = current_page + 1
-        else:
-            next_page = 2
-            if current_page is None:
-                current_page = 1
-    else:
-        if dom_urls:
-            has_next_page = False
+    curr, nxt, has_nxt = _resolve_pagination(response, None, None, None, None)
 
     return ListingPageData(
         product_urls=tuple(dom_urls),
-        current_page=current_page,
-        next_page=next_page,
-        has_next_page=has_next_page,
+        current_page=curr,
+        next_page=nxt,
+        has_next_page=has_nxt,
         total_products=None,
         state_source=None,
         dom_fallback_used=True,
@@ -303,24 +330,17 @@ def extract_product_links(response: object) -> list[str]:
 def extract_next_page(response: object) -> str | None:
     """Find the next-page link from a listing page response.
 
-    Unified pagination discovery with DOM fallback.
+    Unified pagination discovery with state and DOM fallback.
     """
     base_url = str(response.url) if hasattr(response, "url") else ""
-    page = _to_adaptor(response) if not isinstance(response, Adaptor) else response
-
-    # Check DOM first for explicit <a rel="next">
-    if hasattr(page, "css"):
-        for anchor in page.css('a[rel="next"]'):
-            href = anchor.attrib.get("href", "")
-            if href:
-                return urljoin(base_url, href)
-
-    # Check structured listing page data
     page_data = parse_listing_page(response)
+
     if page_data.has_next_page and page_data.next_page is not None and base_url:
-        parsed = urlparse(base_url)
-        qs = parse_qs(parsed.query, keep_blank_values=True)
-        qs["page"] = [str(page_data.next_page)]
-        return urlunparse(parsed._replace(query=urlencode(qs, doseq=True)))
+        return build_page_url(base_url, page_data.next_page)
+
+    dom_next = _extract_dom_next_page(response)
+    if dom_next:
+        return dom_next
 
     return None
+

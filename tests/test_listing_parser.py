@@ -442,3 +442,160 @@ def test_extract_next_page_unified_delegation(
     next_dom = extract_next_page(listing_response)
     assert next_dom is not None
     assert "page=2" in next_dom
+
+
+# ---------------------------------------------------------------------------
+# Task 6: Evidence-Based Pagination Hierarchy Tests
+# ---------------------------------------------------------------------------
+
+
+def test_pagination_priority_1_explicit_has_next_page_true():
+    """Priority 1: Explicit hasNextPage=True triggers next_page=current_page+1."""
+    html = """
+    <script type="application/json">
+    {
+      "searchProduct": {
+        "data": {
+          "products": [{"id": "1", "name": "Laptop 1", "url": "https://www.tokopedia.com/shop/item-1"}],
+          "pagination": {"currentPage": 3, "totalPages": 10, "hasNextPage": true}
+        }
+      }
+    }
+    </script>
+    """
+    data = parse_listing_page(html)
+    assert data.has_next_page is True
+    assert data.current_page == 3
+    assert data.next_page == 4
+
+
+def test_pagination_priority_1_explicit_has_next_page_false():
+    """Priority 1: Explicit hasNextPage=False stops pagination (next_page=None)."""
+    html = """
+    <script type="application/json">
+    {
+      "searchProduct": {
+        "data": {
+          "products": [{"id": "1", "name": "Laptop 1", "url": "https://www.tokopedia.com/shop/item-1"}],
+          "pagination": {"currentPage": 3, "totalPages": 10, "hasNextPage": false}
+        }
+      }
+    }
+    </script>
+    """
+    data = parse_listing_page(html)
+    assert data.has_next_page is False
+    assert data.current_page == 3
+    assert data.next_page is None
+
+
+def test_pagination_priority_2_current_page_less_than_total_pages():
+    """Priority 2: When hasNextPage is absent, currentPage < totalPages provides evidence."""
+    html = """
+    <script type="application/json">
+    {
+      "searchProduct": {
+        "data": {
+          "products": [{"id": "1", "name": "Laptop 1", "url": "https://www.tokopedia.com/shop/item-1"}],
+          "pagination": {"currentPage": 2, "totalPages": 5}
+        }
+      }
+    }
+    </script>
+    """
+    data = parse_listing_page(html)
+    assert data.has_next_page is True
+    assert data.current_page == 2
+    assert data.next_page == 3
+
+
+def test_pagination_priority_2_current_page_equals_total_pages():
+    """Priority 2: When currentPage >= totalPages, has_next_page is False."""
+    html = """
+    <script type="application/json">
+    {
+      "searchProduct": {
+        "data": {
+          "products": [{"id": "1", "name": "Laptop 1", "url": "https://www.tokopedia.com/shop/item-1"}],
+          "pagination": {"currentPage": 5, "totalPages": 5}
+        }
+      }
+    }
+    </script>
+    """
+    data = parse_listing_page(html)
+    assert data.has_next_page is False
+    assert data.current_page == 5
+    assert data.next_page is None
+
+
+def test_pagination_priority_3_total_data_and_page_size():
+    """Priority 3: totalData / pageSize computes totalPages and resolves has_next_page."""
+    html = """
+    <script type="application/json">
+    {
+      "searchProduct": {
+        "data": {
+          "products": [{"id": "1", "name": "Laptop 1", "url": "https://www.tokopedia.com/shop/item-1"}],
+          "pagination": {"currentPage": 2, "totalData": 100, "pageSize": 20}
+        }
+      }
+    }
+    </script>
+    """
+    data = parse_listing_page(html)
+    assert data.has_next_page is True
+    assert data.current_page == 2
+    assert data.next_page == 3
+
+
+def test_pagination_priority_4_dom_rel_next_fallback():
+    """Priority 4: When state has no pagination info, DOM a[rel="next"] provides fallback."""
+    html = """
+    <html>
+      <head>
+        <script type="application/json">
+        {
+          "searchProduct": {
+            "data": {
+              "products": [{"id": "1", "name": "Laptop 1", "url": "https://www.tokopedia.com/shop/item-1"}]
+            }
+          }
+        }
+        </script>
+      </head>
+      <body>
+        <a rel="next" href="https://www.tokopedia.com/search?q=laptop&page=2">Next</a>
+      </body>
+    </html>
+    """
+    data = parse_listing_page(Adaptor(html, url="https://www.tokopedia.com/search?q=laptop&page=1"))
+    assert data.has_next_page is True
+    assert data.current_page == 1
+    assert data.next_page == 2
+
+
+def test_pagination_no_evidence_returns_none():
+    """If no evidence across state and DOM, has_next_page and next_page are None."""
+    html = """
+    <html>
+      <head>
+        <script type="application/json">
+        {
+          "searchProduct": {
+            "data": {
+              "products": [{"id": "1", "name": "Laptop 1", "url": "https://www.tokopedia.com/shop/item-1"}]
+            }
+          }
+        }
+        </script>
+      </head>
+      <body>
+        <p>No more pages</p>
+      </body>
+    </html>
+    """
+    data = parse_listing_page(Adaptor(html, url="https://www.tokopedia.com/search?q=laptop"))
+    assert data.has_next_page is None
+    assert data.next_page is None
+
