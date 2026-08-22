@@ -123,11 +123,12 @@ def _extract_page_from_url(url: str) -> int | None:
     try:
         parsed = urlparse(url)
         qs = parse_qs(parsed.query, keep_blank_values=True)
-        if "page" in qs and qs["page"]:
-            val = qs["page"][0].strip()
+        page_val = qs.get("page")
+        if page_val and page_val[0]:
+            val = page_val[0].strip()
             if val.isdigit():
                 return int(val)
-    except Exception:
+    except (ValueError, TypeError, AttributeError):
         pass
     return None
 

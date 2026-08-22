@@ -123,7 +123,7 @@ def inspect_listing(
     target: str = typer.Argument(..., help="URL or path to HTML file"),
 ) -> None:
     """Inspect and diagnose state and DOM extraction for a Tokopedia listing URL or HTML file."""
-    is_url = target.startswith("http://") or target.startswith("https://")
+    is_url = target.startswith(("http://", "https://"))
     status_desc: str
     body_size: int
     response_or_html: object
