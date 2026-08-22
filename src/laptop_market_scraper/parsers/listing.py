@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from urllib.parse import urljoin, urlparse
 
-
 _TOKOPEDIA_DOMAIN = "tokopedia.com"
 
 _NON_PRODUCT_PATH_PREFIXES = (

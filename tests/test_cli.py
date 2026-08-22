@@ -4,7 +4,6 @@ from typer.testing import CliRunner
 
 from laptop_market_scraper.cli import app
 
-
 runner = CliRunner()
 
 

@@ -8,9 +8,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
 
 import pandas as pd
 
@@ -22,7 +20,6 @@ from laptop_market_scraper.normalization import (
     normalize_rating,
 )
 from laptop_market_scraper.url_utils import canonicalize_product_url, make_listing_key
-
 
 _SCHEMA = """\
 CREATE TABLE IF NOT EXISTS products (

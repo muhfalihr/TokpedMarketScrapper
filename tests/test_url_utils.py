@@ -1,4 +1,3 @@
-import pytest
 
 from laptop_market_scraper.url_utils import canonicalize_product_url, make_listing_key
 

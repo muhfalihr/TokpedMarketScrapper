@@ -8,7 +8,6 @@ from scrapling.parser import Adaptor
 from laptop_market_scraper.models import ListingSeed
 from laptop_market_scraper.parsers.product import parse_product
 
-
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
 
 

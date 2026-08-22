@@ -7,7 +7,6 @@ from scrapling.parser import Adaptor
 
 from laptop_market_scraper.parsers.listing import extract_next_page, extract_product_links
 
-
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
 
 

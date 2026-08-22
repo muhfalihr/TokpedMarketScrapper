@@ -13,3 +13,10 @@ ENV/
 coverage.xml
 *.cover
 *.log
+
+# Data and build
+crawl_state/
+data/
+reports/
+*.egg-info/
+.serena/

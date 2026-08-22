@@ -3,7 +3,6 @@
 from hashlib import sha256
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
-
 _TRACKING_PARAMS = frozenset({
     "utm_source",
     "utm_medium",
