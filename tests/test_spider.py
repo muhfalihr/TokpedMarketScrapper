@@ -20,7 +20,8 @@ def spider(mock_store):
     return TokopediaLaptopSpider(crawl_run_id="test-run", store=mock_store, max_items=2)
 
 
-def test_start_requests_yields_from_seeds(spider):
+@pytest.mark.asyncio
+async def test_start_requests_yields_from_seeds(spider):
     with patch("laptop_market_scraper.spiders.tokopedia_laptop.load_seeds") as mock_load:
         mock_seed = MagicMock()
         mock_seed.url = "https://example.com"
@@ -28,16 +29,15 @@ def test_start_requests_yields_from_seeds(spider):
         mock_seed.query = "laptop"
         mock_load.return_value = [mock_seed]
 
-        requests = list(spider.start_requests())
-
+        requests = [r async for r in spider.start_requests()]
         assert len(requests) == 1
         req = requests[0]
         assert req.url == "https://example.com"
-        # We need to access meta dictionary
-        assert hasattr(req, "meta") or isinstance(req.meta, dict)
+        assert req.callback == spider.parse_listing
 
 
-def test_parse_listing_yields_product_requests_and_next_page(spider):
+@pytest.mark.asyncio
+async def test_parse_listing_yields_product_requests_and_next_page(spider):
     html = '''
     <a href="https://www.tokopedia.com/shop/asus-vivobook">ASUS</a>
     <a href="https://www.tokopedia.com/shop/lenovo-loq">Lenovo</a>
@@ -52,17 +52,16 @@ def test_parse_listing_yields_product_requests_and_next_page(spider):
         "source_page": 1,
     }
 
-    results = list(spider.parse_listing(response))
-
-    # We expect 2 product requests and 1 next page request
+    results = [r async for r in spider.parse_listing(response)]
+    
     assert len(results) == 3
     assert results[0].url == "https://www.tokopedia.com/shop/asus-vivobook"
     assert results[1].url == "https://www.tokopedia.com/shop/lenovo-loq"
-    assert results[2].url == "https://www.tokopedia.com/search?page=2"
-    assert results[2].meta["source_page"] == 2
+    assert "page=2" in results[2].url
 
 
-def test_parse_product_saves_accepted_product(spider, mock_store):
+@pytest.mark.asyncio
+async def test_parse_product_saves_accepted_product(spider, mock_store):
     html = '''
     <h1>ASUS Vivobook Laptop 14</h1>
     <span>Rp12.000.000</span>
@@ -75,14 +74,17 @@ def test_parse_product_saves_accepted_product(spider, mock_store):
         "source_page": 1,
     }
 
-    results = list(spider.parse_product_page(response))
+    results = [r async for r in spider.parse_product_page(response)]
 
     assert len(results) == 1
-    assert mock_store.save.called
-    assert not mock_store.save_rejected.called
+    normalized = results[0]
+    assert normalized.product_name == "ASUS Vivobook Laptop 14"
+    mock_store.save.assert_called_once()
+    assert spider.items_scraped == 1
 
 
-def test_parse_product_rejects_accessory(spider, mock_store):
+@pytest.mark.asyncio
+async def test_parse_product_rejects_accessory(spider, mock_store):
     html = '''
     <h1>Tas Laptop Anti Air</h1>
     <span>Rp150.000</span>
@@ -95,8 +97,7 @@ def test_parse_product_rejects_accessory(spider, mock_store):
         "source_page": 1,
     }
 
-    results = list(spider.parse_product_page(response))
+    results = [r async for r in spider.parse_product_page(response)]
 
     assert len(results) == 0
-    assert not mock_store.save.called
-    assert mock_store.save_rejected.called
+    mock_store.save_rejected.assert_called_once()

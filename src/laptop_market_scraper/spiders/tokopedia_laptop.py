@@ -1,6 +1,6 @@
 """Scrapling crawl orchestration."""
 
-from typing import Any
+from typing import Any, ClassVar
 
 from scrapling.spiders import Request, Spider
 
@@ -10,13 +10,12 @@ from laptop_market_scraper.models import ListingSeed
 from laptop_market_scraper.parsers.listing import extract_next_page, extract_product_links
 from laptop_market_scraper.parsers.product import parse_product
 from laptop_market_scraper.storage import SQLiteStore, normalize_product
-from laptop_market_scraper.url_utils import canonicalize_product_url
 
 
 class TokopediaLaptopSpider(Spider):
     name = "tokopedia_laptops"
 
-    allowed_domains = {"tokopedia.com"}
+    allowed_domains: ClassVar[set[str]] = {"tokopedia.com"}
 
     robots_txt_obey = True
 
@@ -45,10 +44,10 @@ class TokopediaLaptopSpider(Spider):
         self.browser_fallback = browser_fallback
         self.items_scraped = 0
 
-    def parse(self, response):
+    async def parse(self, response):
         pass
 
-    def start_requests(self):
+    async def start_requests(self):
         seeds = load_seeds(self.seed_config)
         for seed in seeds:
             yield Request(
@@ -62,7 +61,7 @@ class TokopediaLaptopSpider(Spider):
                 }
             )
 
-    def parse_listing(self, response):
+    async def parse_listing(self, response):
         meta = response.meta
         product_links = extract_product_links(response)
 
@@ -92,24 +91,20 @@ class TokopediaLaptopSpider(Spider):
                     meta=new_meta
                 )
 
-    def parse_product_page(self, response):
+    async def parse_product_page(self, response):
         meta = response.meta
         seed = ListingSeed(
-            product_url=str(response.url) if hasattr(response, "url") else meta.get("source_url"),
+            product_url=response.url,
             source_type=meta.get("source_type", "unknown"),
             source_query=meta.get("source_query"),
             source_url=meta.get("source_url", ""),
             source_page=meta.get("source_page"),
         )
-
         raw_product = parse_product(response, seed, self.crawl_run_id)
 
-        title = raw_product.product_name_raw or ""
-        breadcrumbs = raw_product.breadcrumbs or ()
-
-        if not is_laptop_candidate(title, breadcrumbs):
+        if not is_laptop_candidate(raw_product.product_name_raw or "", raw_product.breadcrumbs):
             if self.store:
-                self.store.save_rejected(raw_product, "Not a laptop candidate")
+                self.store.save_rejected(raw_product, "Failed laptop eligibility checks")
             return
 
         normalized = normalize_product(raw_product)

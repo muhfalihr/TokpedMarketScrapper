@@ -12,12 +12,6 @@ from laptop_market_scraper.quality import build_quality_report
 from laptop_market_scraper.spiders.tokopedia_laptop import TokopediaLaptopSpider
 from laptop_market_scraper.storage import SQLiteStore
 
-try:
-    from scrapling.core.engine import CrawlerEngine
-except ImportError:
-    CrawlerEngine = None
-
-
 app = typer.Typer(help="Tokopedia Laptop Research Dataset Crawler")
 
 
@@ -49,12 +43,7 @@ def crawl(
         browser_fallback=browser_fallback,
     )
 
-    if CrawlerEngine:
-        engine = CrawlerEngine(spider)
-        engine.start()
-    else:
-        print("CrawlerEngine not found in scrapling, skipping crawl.")
-
+    spider.start()
 
 @app.command()
 def export(

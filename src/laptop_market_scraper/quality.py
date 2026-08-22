@@ -82,9 +82,8 @@ def build_quality_report(run_id: str, store: SQLiteStore) -> QualityReport:
                 invalid_rating_count += 1
         if p.review_count is not None:
             review_counts += 1
-        if p.discount_percent is not None:
-            if p.discount_percent < 0 or p.discount_percent > 100:
-                invalid_discount_count += 1
+        if p.discount_percent is not None and (p.discount_percent < 0 or p.discount_percent > 100):
+            invalid_discount_count += 1
 
     coverage_product_name = product_names / row_count
     coverage_price = len(prices) / row_count
@@ -139,7 +138,9 @@ def write_manifest(run_id: str, store: SQLiteStore, started_at: datetime, finish
         git_commit = subprocess.check_output(
             ["git", "rev-parse", "HEAD"], text=True
         ).strip()
-    except Exception:
+    except subprocess.CalledProcessError:
+        git_commit = "unknown"
+    except FileNotFoundError:
         git_commit = "unknown"
 
     try:

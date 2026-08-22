@@ -27,6 +27,9 @@ laptop-scraper = "laptop_market_scraper.cli:app"
 pythonpath = ["src"]
 testpaths = ["tests"]
 
+[tool.ruff.lint]
+extend-ignore = ["B008"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"

@@ -1,7 +1,6 @@
 """Tests for the storage module."""
 
 from datetime import UTC, datetime
-from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -22,15 +21,15 @@ def _make_product(
     listing_key: str = "pid:12345",
     **kwargs,
 ) -> NormalizedProduct:
-    defaults = dict(
-        crawl_run_id=crawl_run_id,
-        scraped_at=datetime.now(UTC),
-        product_name="ASUS Vivobook 14",
-        product_url="https://www.tokopedia.com/shop/product",
-        canonical_url="https://www.tokopedia.com/shop/product",
-        listing_key=listing_key,
-        price=10_000_000,
-    )
+    defaults = {
+        "crawl_run_id": crawl_run_id,
+        "scraped_at": datetime.now(UTC),
+        "product_name": "ASUS Vivobook 14",
+        "product_url": "https://www.tokopedia.com/shop/product",
+        "canonical_url": "https://www.tokopedia.com/shop/product",
+        "listing_key": listing_key,
+        "price": 10_000_000,
+    }
     defaults.update(kwargs)
     return NormalizedProduct(**defaults)
 
