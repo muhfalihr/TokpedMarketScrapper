@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pandas as pd
@@ -35,6 +36,27 @@ CREATE TABLE IF NOT EXISTS rejected (
     product_url TEXT NOT NULL,
     reason TEXT NOT NULL,
     payload_json TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS product_discoveries (
+    crawl_run_id TEXT NOT NULL,
+    listing_key TEXT NOT NULL,
+    source_query TEXT NOT NULL,
+    seed_kind TEXT NOT NULL,
+    search_page INTEGER NOT NULL,
+    search_start INTEGER NOT NULL,
+    search_rows INTEGER NOT NULL,
+    search_rank INTEGER NOT NULL,
+    category_sc TEXT NOT NULL,
+    sort_code TEXT NOT NULL,
+    observed_total_data INTEGER,
+    discovered_at TEXT NOT NULL,
+    PRIMARY KEY (
+        crawl_run_id,
+        listing_key,
+        source_query,
+        search_page
+    )
 );
 """
 
@@ -209,6 +231,123 @@ class SQLiteStore:
         df.to_csv(csv_out, index=False)
         df.to_parquet(parquet_out, index=False)
 
+    def record_discovery(
+        self,
+        *,
+        crawl_run_id: str,
+        listing_key: str,
+        source_query: str,
+        seed_kind: str,
+        search_page: int,
+        search_start: int,
+        search_rows: int,
+        search_rank: int,
+        category_sc: str,
+        sort_code: str,
+        observed_total_data: int | None = None,
+        discovered_at: str | None = None,
+    ) -> None:
+        """Record search discovery provenance.
+
+        Uses INSERT OR IGNORE to prevent duplicate entries for identical
+        crawl_run_id, listing_key, source_query, and search_page.
+        """
+        if discovered_at is None:
+            discovered_at = datetime.now(UTC).isoformat()
+
+        self._conn.execute(
+            """\
+            INSERT OR IGNORE INTO product_discoveries (
+                crawl_run_id,
+                listing_key,
+                source_query,
+                seed_kind,
+                search_page,
+                search_start,
+                search_rows,
+                search_rank,
+                category_sc,
+                sort_code,
+                observed_total_data,
+                discovered_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                crawl_run_id,
+                listing_key,
+                source_query,
+                seed_kind,
+                search_page,
+                search_start,
+                search_rows,
+                search_rank,
+                category_sc,
+                sort_code,
+                observed_total_data,
+                discovered_at,
+            ),
+        )
+        self._conn.commit()
+
+    def count_discoveries(
+        self, listing_key: str | None = None, crawl_run_id: str | None = None
+    ) -> int:
+        """Count discovery records, optionally filtered by listing_key and/or crawl_run_id."""
+        query = "SELECT COUNT(*) FROM product_discoveries"
+        params: list[str] = []
+        where_clauses: list[str] = []
+
+        if listing_key is not None:
+            where_clauses.append("listing_key = ?")
+            params.append(listing_key)
+        if crawl_run_id is not None:
+            where_clauses.append("crawl_run_id = ?")
+            params.append(crawl_run_id)
+
+        if where_clauses:
+            query += " WHERE " + " AND ".join(where_clauses)
+
+        row = self._conn.execute(query, params).fetchone()
+        return row[0] if row else 0
+
+    def export_discoveries_csv(self, crawl_run_id: str, output_path: str | Path) -> Path:
+        """Export product discoveries for a given crawl_run_id to a CSV file."""
+        out = Path(output_path)
+        out.parent.mkdir(parents=True, exist_ok=True)
+
+        columns = [
+            "crawl_run_id",
+            "listing_key",
+            "source_query",
+            "seed_kind",
+            "search_page",
+            "search_start",
+            "search_rows",
+            "search_rank",
+            "category_sc",
+            "sort_code",
+            "observed_total_data",
+            "discovered_at",
+        ]
+
+        rows = self._conn.execute(
+            """\
+            SELECT crawl_run_id, listing_key, source_query, seed_kind, search_page,
+                   search_start, search_rows, search_rank, category_sc, sort_code,
+                   observed_total_data, discovered_at
+            FROM product_discoveries
+            WHERE crawl_run_id = ?
+            """,
+            (crawl_run_id,),
+        ).fetchall()
+
+        df = pd.DataFrame(rows, columns=columns)
+        df.to_csv(out, index=False)
+        return out
+
     def close(self) -> None:
         """Close the database connection."""
         self._conn.close()
+
+
+MarketStorage = SQLiteStore
