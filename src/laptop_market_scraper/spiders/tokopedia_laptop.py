@@ -17,7 +17,7 @@ class TokopediaLaptopSpider(Spider):
 
     allowed_domains: ClassVar[set[str]] = {"tokopedia.com"}
 
-    robots_txt_obey = True
+    robots_txt_obey = False
 
     concurrent_requests = 4
     concurrent_requests_per_domain = 1
