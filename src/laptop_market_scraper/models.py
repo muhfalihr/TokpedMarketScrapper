@@ -68,3 +68,15 @@ class NormalizedProduct(BaseModel):
     transaction_reject: int | None = Field(default=None, ge=0)
 
     rating: float | None = Field(default=None, ge=0, le=5)
+
+    brand: str | None = None
+    category: str | None = None
+    subcategory: str | None = None
+    shop_name: str | None = None
+    shop_location: str | None = None
+    official_store: bool | None = None
+
+    source_type: str | None = None
+    source_query: str | None = None
+    source_url: str | None = None
+    source_page: int | None = None
