@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import math
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 
 from scrapling.parser import Adaptor
@@ -145,7 +145,11 @@ def _to_adaptor(response: object) -> Adaptor:
     return Adaptor(str(response))
 
 
-def extract_state_candidates(response: object) -> list[StateCandidate]:
+def extract_state_candidates(
+    response: object,
+    *,
+    on_decode_error: Callable[[Exception, str, int], None] | None = None,
+) -> list[StateCandidate]:
     """Discover and extract embedded JSON/state candidates from an HTML response.
 
     Extraction hierarchy:
@@ -170,8 +174,9 @@ def extract_state_candidates(response: object) -> list[StateCandidate]:
             try:
                 data = json.loads(raw_text.strip())
                 return [StateCandidate(source="raw_json", payload=data, script_index=0)]
-            except (json.JSONDecodeError, UnicodeDecodeError, TypeError, ValueError):
-                pass
+            except (json.JSONDecodeError, UnicodeDecodeError, TypeError, ValueError) as exc:
+                if on_decode_error:
+                    on_decode_error(exc, "raw_json", 0)
 
             # Check for window assignments in raw text
             seen_spans: set[int] = set()
@@ -210,8 +215,9 @@ def extract_state_candidates(response: object) -> list[StateCandidate]:
                                 UnicodeDecodeError,
                                 TypeError,
                                 ValueError,
-                            ):
-                                pass
+                            ) as exc:
+                                if on_decode_error:
+                                    on_decode_error(exc, marker, 0)
                         marker_pos = raw_text.find(marker, eq_pos + 1)
         return candidates
 
@@ -237,6 +243,10 @@ def extract_state_candidates(response: object) -> list[StateCandidate]:
                 logger.debug(
                     "Failed to decode application/json script at index %d: %s", script_idx, exc
                 )
+                if on_decode_error:
+                    on_decode_error(
+                        exc, script_id if script_id else (script_type or "application/json"), script_idx
+                    )
                 continue
 
         # 2. Next.js Flight marker check: skip blind decoding
@@ -295,6 +305,8 @@ def extract_state_candidates(response: object) -> list[StateCandidate]:
                             script_idx,
                             exc,
                         )
+                        if on_decode_error:
+                            on_decode_error(exc, marker, script_idx)
 
                 marker_pos = text.find(marker, eq_pos + 1)
 
