@@ -7,7 +7,16 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import typer
+from scrapling import Fetcher
 
+from laptop_market_scraper.parsers.listing import parse_listing_page
+from laptop_market_scraper.parsers.state import (
+    FLIGHT_MARKER,
+    _to_adaptor,
+    detect_flight_marker,
+    extract_state_candidates,
+    score_candidates,
+)
 from laptop_market_scraper.quality import build_quality_report
 from laptop_market_scraper.spiders.tokopedia_laptop import TokopediaLaptopSpider
 from laptop_market_scraper.storage import SQLiteStore
@@ -109,5 +118,121 @@ def inspect(
     print(f"Rejected: {rejected}")
 
 
+@app.command(name="inspect-listing")
+def inspect_listing(
+    target: str = typer.Argument(..., help="URL or path to HTML file"),
+) -> None:
+    """Inspect and diagnose state and DOM extraction for a Tokopedia listing URL or HTML file."""
+    is_url = target.startswith("http://") or target.startswith("https://")
+    status_desc: str
+    body_size: int
+    response_or_html: object
+
+    if is_url:
+        try:
+            resp = Fetcher.get(target)
+            status_code = getattr(resp, "status", "unknown")
+            status_desc = f"HTTP {status_code} ({target})"
+            raw_body = getattr(resp, "body", None)
+            if isinstance(raw_body, bytes):
+                body_size = len(raw_body)
+            elif hasattr(resp, "text") and isinstance(resp.text, str):
+                body_size = len(resp.text.encode("utf-8", errors="replace"))
+            else:
+                body_size = len(str(resp).encode("utf-8", errors="replace"))
+            response_or_html = resp
+        except Exception as exc:
+            typer.echo(f"Error fetching URL {target}: {exc}", err=True)
+            raise typer.Exit(code=1) from exc
+    else:
+        path = Path(target)
+        if not path.is_file():
+            typer.echo(f"Error: File not found: {target}", err=True)
+            raise typer.Exit(code=1)
+        try:
+            raw_bytes = path.read_bytes()
+            body_size = len(raw_bytes)
+            status_desc = f"File read: {path.resolve()}"
+            response_or_html = raw_bytes.decode("utf-8", errors="replace")
+        except Exception as exc:
+            typer.echo(f"Error reading file {target}: {exc}", err=True)
+            raise typer.Exit(code=1) from exc
+
+    page = _to_adaptor(response_or_html)
+    scripts = page.css("script") if hasattr(page, "css") else []
+    total_scripts = len(scripts)
+    app_json_count = 0
+    for s in scripts:
+        attrib = getattr(s, "attrib", {}) or {}
+        stype = attrib.get("type", "").strip().lower()
+        sid = attrib.get("id", "").strip()
+        if stype == "application/json" or sid == "__NEXT_DATA__":
+            app_json_count += 1
+
+    # Detect hydration markers
+    if isinstance(response_or_html, str):
+        html_text = response_or_html
+    elif hasattr(response_or_html, "text") and isinstance(response_or_html.text, str):
+        html_text = response_or_html.text
+    elif hasattr(response_or_html, "body"):
+        b = response_or_html.body
+        html_text = b.decode("utf-8", errors="replace") if isinstance(b, bytes) else str(b)
+    else:
+        html_text = str(response_or_html)
+
+    detected_markers: list[str] = []
+    if "__NEXT_DATA__" in html_text or any(
+        (getattr(s, "attrib", {}) or {}).get("id") == "__NEXT_DATA__" for s in scripts
+    ):
+        detected_markers.append("__NEXT_DATA__")
+    if "__INITIAL_STATE__" in html_text or "window.__INITIAL_STATE__" in html_text:
+        detected_markers.append("__INITIAL_STATE__")
+    if detect_flight_marker(response_or_html) or "__next_f" in html_text or FLIGHT_MARKER in html_text:
+        detected_markers.append("__next_f")
+
+    # State candidates & scoring
+    candidates = extract_state_candidates(response_or_html)
+    scored_candidates = score_candidates(candidates)
+
+    # Parsing result & diagnostics
+    page_data = parse_listing_page(response_or_html)
+    diag = page_data.diagnostics
+
+    # Structured output
+    typer.echo(f"Source: {status_desc}")
+    typer.echo(f"Body size: {body_size} bytes")
+    typer.echo(
+        f"Scripts summary: {total_scripts} total ({app_json_count} application/json or __NEXT_DATA__)"
+    )
+    markers_str = ", ".join(detected_markers) if detected_markers else "none"
+    typer.echo(f"Detected hydration markers: {markers_str}")
+    typer.echo(f"State candidates found: {len(candidates)}")
+    for idx, scored in enumerate(scored_candidates):
+        cand = scored.candidate
+        typer.echo(
+            f"  [{idx}] source='{cand.source}', script_idx={cand.script_index}, "
+            f"products={scored.product_count}, has_pagination={scored.has_pagination}"
+        )
+    typer.echo(f"Selected state source: {page_data.state_source or 'None'}")
+    typer.echo(f"Product count: {len(page_data.product_urls)}")
+    typer.echo(
+        f"Pagination summary: current_page={page_data.current_page}, "
+        f"next_page={page_data.next_page}, has_next_page={page_data.has_next_page}, "
+        f"total_products={page_data.total_products}"
+    )
+    typer.echo(f"DOM fallback used: {'yes' if page_data.dom_fallback_used else 'no'}")
+    typer.echo(
+        f"Diagnostics: scripts_scanned={diag.scripts_scanned}, "
+        f"candidates={diag.state_candidates_found}, "
+        f"json_errors={diag.json_decode_errors}, "
+        f"flight_detected={'yes' if diag.next_f_detected else 'no'}, "
+        f"records_seen={diag.product_records_seen}, "
+        f"accepted={diag.product_urls_accepted}, "
+        f"rejected={diag.product_urls_rejected}, "
+        f"dom_fallback={'yes' if diag.dom_fallback_used else 'no'}"
+    )
+
+
 if __name__ == "__main__":
     app()
+
