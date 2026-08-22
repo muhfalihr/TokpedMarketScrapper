@@ -1,0 +1,12 @@
+seeds:
+  - source_type: search
+    query: laptop
+    url: "https://www.tokopedia.com/search?st=product&q=laptop"
+
+  - source_type: search
+    query: notebook
+    url: "https://www.tokopedia.com/search?st=product&q=notebook"
+
+  - source_type: search
+    query: laptop gaming
+    url: "https://www.tokopedia.com/search?st=product&q=laptop%20gaming"

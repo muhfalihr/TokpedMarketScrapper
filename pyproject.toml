@@ -1,0 +1,32 @@
+[project]
+name = "tokopedia-laptop-dataset"
+version = "0.1.0"
+requires-python = ">=3.12"
+
+dependencies = [
+    "scrapling[fetchers]==0.4.14",
+    "pydantic>=2.8,<3",
+    "pydantic-settings>=2.4,<3",
+    "pandas>=2.2,<3",
+    "pyarrow>=17,<22",
+    "PyYAML>=6,<7",
+    "typer>=0.12,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8,<9",
+    "pytest-asyncio>=0.24,<1",
+    "ruff>=0.6,<1",
+]
+
+[project.scripts]
+laptop-scraper = "laptop_market_scraper.cli:app"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
