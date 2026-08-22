@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
@@ -7,6 +9,13 @@ from laptop_market_scraper.models import (
     SearchProduct,
     SearchSeed,
 )
+from laptop_market_scraper.parsers.search_api import (
+    SearchGraphQLError,
+    SearchSchemaError,
+    parse_search_response,
+)
+
+FIXTURES_DIR = Path(__file__).parent / "fixtures" / "search_api"
 
 
 def test_search_seed_validation():
@@ -115,3 +124,109 @@ def test_search_page_tuple_and_serialization():
 
     json_str = page.model_dump_json()
     assert "Laptop A" in json_str
+
+
+def test_parse_search_response_page_1():
+    with open(FIXTURES_DIR / "page_1.json", encoding="utf-8") as f:
+        payload = json.load(f)
+
+    result = parse_search_response(payload, query="laptop", page=1, rows=60)
+    assert isinstance(result, SearchPage)
+    assert result.query == "laptop"
+    assert result.page == 1
+    assert result.rows == 60
+    assert result.total_data == 1038718
+    assert len(result.products) == 60
+
+    p0 = result.products[0]
+    assert p0.product_id == "103564801973"
+    assert "Kimiso Converter" in p0.name
+    assert p0.url.startswith("https://www.tokopedia.com/")
+    assert p0.price == 60000
+    assert p0.original_price_raw == "Rp120.000"
+    assert p0.discount_percent == 0.0
+    assert p0.shop_id == "7494602698326443630"
+    assert p0.shop_name == "KIMSTORE SPEAKER"
+    assert p0.shop_city == "Kab. Tangerang"
+    assert p0.rating == 5.0
+    assert p0.category.name == "Komputer & Laptop"
+    assert p0.category.id == "297"
+    assert p0.category.old_id == 297
+    assert p0.category.breadcrumb == "komputer-laptop/aksesoris-komputer-laptop/lainnya"
+    assert p0.category.ga_key == "komputer-laptop/aksesoris-komputer-laptop/lainnya"
+    assert p0.raw["id"] == "103564801973"
+
+
+def test_parse_search_response_page_2():
+    with open(FIXTURES_DIR / "page_2.json", encoding="utf-8") as f:
+        payload = json.load(f)
+
+    result = parse_search_response(payload, query="laptop", page=2, rows=60)
+    assert isinstance(result, SearchPage)
+    assert result.query == "laptop"
+    assert result.page == 2
+    assert result.rows == 60
+    assert result.total_data == 1038716
+    assert len(result.products) == 60
+
+
+def test_parse_search_response_dict_payload():
+    with open(FIXTURES_DIR / "page_1.json", encoding="utf-8") as f:
+        list_payload = json.load(f)
+
+    dict_payload = list_payload[0]
+    result = parse_search_response(dict_payload, query="laptop", page=1, rows=60)
+    assert len(result.products) == 60
+
+
+def test_parse_search_response_query_alias():
+    with open(FIXTURES_DIR / "page_1.json", encoding="utf-8") as f:
+        list_payload = json.load(f)
+
+    dict_payload = list_payload[0]
+    # Replace searchProductV5 key with SearchProductV5Query
+    search_data = dict_payload["data"].pop("searchProductV5")
+    dict_payload["data"]["SearchProductV5Query"] = search_data
+
+    result = parse_search_response(dict_payload, query="laptop", page=1, rows=60)
+    assert len(result.products) == 60
+
+
+def test_parse_search_response_graphql_error():
+    error_payload = [{"errors": [{"message": "Unauthorized access"}]}]
+    with pytest.raises(SearchGraphQLError, match="Unauthorized access"):
+        parse_search_response(error_payload, query="laptop", page=1)
+
+    error_payload_dict = {"errors": [{"message": "Invalid token"}]}
+    with pytest.raises(SearchGraphQLError, match="Invalid token"):
+        parse_search_response(error_payload_dict, query="laptop", page=1)
+
+
+def test_parse_search_response_schema_error():
+    with pytest.raises(SearchSchemaError):
+        parse_search_response({}, query="laptop", page=1)
+
+    with pytest.raises(SearchSchemaError):
+        parse_search_response({"data": {}}, query="laptop", page=1)
+
+    with pytest.raises(SearchSchemaError):
+        parse_search_response({"data": {"searchProductV5": {}}}, query="laptop", page=1)
+
+    with pytest.raises(SearchSchemaError):
+        parse_search_response([], query="laptop", page=1)
+
+
+def test_parse_search_response_empty_products():
+    empty_payload = {
+        "data": {
+            "searchProductV5": {
+                "header": {"totalData": 0},
+                "data": {"products": []},
+            }
+        }
+    }
+    result = parse_search_response(empty_payload, query="laptop", page=1, rows=60)
+    assert isinstance(result, SearchPage)
+    assert result.total_data == 0
+    assert result.products == ()
+
