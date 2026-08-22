@@ -4,9 +4,13 @@ from __future__ import annotations
 
 import json
 import logging
+import math
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 
 from scrapling.parser import Adaptor
+
+from laptop_market_scraper.url_utils import is_tokopedia_product_url
 
 logger = logging.getLogger(__name__)
 
@@ -26,12 +30,18 @@ FLIGHT_MARKER: str = "self.__next_f"
 __all__ = (
     "FLIGHT_MARKER",
     "KNOWN_STATE_MARKERS",
+    "CandidateScore",
     "StateCandidate",
     "StateListingResult",
     "TokopediaListingStateAdapter",
     "decode_json_assignment",
     "detect_flight_marker",
+    "extract_generic_state",
     "extract_state_candidates",
+    "looks_like_product_record",
+    "score_candidate",
+    "score_candidates",
+    "walk_json",
 )
 
 
@@ -541,3 +551,327 @@ class TokopediaListingStateAdapter:
             )
 
         return _extract_from_container(container)
+
+
+# ---------------------------------------------------------------------------
+# Generic Recovery and Candidate Scoring
+# ---------------------------------------------------------------------------
+
+_GENERIC_PRODUCT_URL_KEYS: tuple[str, ...] = (
+    "url",
+    "productUrl",
+    "product_url",
+    "link",
+    "desktopUrl",
+    "mobileUrl",
+    "applink",
+    "canonicalUrl",
+)
+
+_GENERIC_PRODUCT_EVIDENCE_KEYS: frozenset[str] = frozenset({
+    "id",
+    "productId",
+    "product_id",
+    "pId",
+    "name",
+    "title",
+    "productName",
+    "product_name",
+    "price",
+    "priceInt",
+    "price_int",
+    "priceRange",
+    "seller",
+    "shop",
+    "shopName",
+    "shop_name",
+    "sellerName",
+    "seller_name",
+    "rating",
+    "ratingAverage",
+    "rating_average",
+    "reviewCount",
+    "countReview",
+    "count_review",
+})
+
+_GENERIC_NOISE_TYPES: frozenset[str] = frozenset({
+    "banner",
+    "promo_banner",
+    "promo",
+    "campaign_banner",
+    "avatar",
+    "profile_avatar",
+    "shop_avatar",
+    "carousel_banner",
+})
+
+
+def walk_json(
+    value: object,
+    *,
+    max_depth: int = 20,
+    _current_depth: int = 0,
+    _seen: set[int] | None = None,
+) -> Iterator[object]:
+    """Recursively yield all nodes in a JSON tree up to max_depth.
+
+    Handles nested dicts, lists, and primitives with cycle prevention
+    and bounded recursion depth.
+    """
+    if isinstance(value, StateCandidate):
+        value = value.payload
+
+    yield value
+
+    if _current_depth >= max_depth:
+        return
+
+    if _seen is None:
+        _seen = set()
+
+    if isinstance(value, Mapping):
+        val_id = id(value)
+        if val_id in _seen:
+            return
+        _seen.add(val_id)
+        for v in value.values():
+            yield from walk_json(
+                v,
+                max_depth=max_depth,
+                _current_depth=_current_depth + 1,
+                _seen=_seen,
+            )
+    elif isinstance(value, (list, tuple)):
+        val_id = id(value)
+        if val_id in _seen:
+            return
+        _seen.add(val_id)
+        for item in value:
+            yield from walk_json(
+                item,
+                max_depth=max_depth,
+                _current_depth=_current_depth + 1,
+                _seen=_seen,
+            )
+
+
+def _extract_product_url_from_record(value: Mapping[str, object]) -> str | None:
+    for k in _GENERIC_PRODUCT_URL_KEYS:
+        if k in value:
+            raw_url = value[k]
+            if isinstance(raw_url, str) and raw_url.strip():
+                clean_url = raw_url.strip().split("#")[0]
+                if clean_url.startswith("/"):
+                    clean_url = f"https://www.tokopedia.com{clean_url}"
+                if is_tokopedia_product_url(clean_url):
+                    return clean_url
+    return None
+
+
+def looks_like_product_record(value: Mapping[str, object]) -> bool:
+    """Determine whether a JSON dictionary represents a valid product listing record.
+
+    Validation requirements:
+    1. Must be a mapping/dict.
+    2. Must contain a candidate URL key ('url', 'productUrl', 'product_url', 'link',
+       'desktopUrl', 'mobileUrl', etc.) that passes `is_tokopedia_product_url`.
+    3. Must contain at least one product identity evidence key ('id', 'productId',
+       'product_id', 'name', 'title', 'price', 'priceInt', 'seller', 'shop', etc.)
+       with a non-empty value.
+    4. Must not be classified as explicit non-product noise (banners, avatars, etc.).
+    """
+    if not isinstance(value, Mapping):
+        return False
+
+    # Check for explicit noise type indicators
+    val_type = str(value.get("type", "")).lower()
+    if val_type in _GENERIC_NOISE_TYPES:
+        return False
+    val_comp_type = str(
+        value.get("component_type", "") or value.get("componentType", "")
+    ).lower()
+    if val_comp_type in _GENERIC_NOISE_TYPES:
+        return False
+
+    # 1. URL key requirement
+    valid_url = _extract_product_url_from_record(value)
+    if not valid_url:
+        return False
+
+    # 2. Product identity evidence requirement
+    has_evidence = False
+    for k in _GENERIC_PRODUCT_EVIDENCE_KEYS:
+        if k in value:
+            val = value[k]
+            if val is not None and val != "":
+                has_evidence = True
+                break
+
+    return has_evidence
+
+
+@dataclass(frozen=True)
+class CandidateScore:
+    """Scored state candidate evaluating product count and pagination metadata."""
+
+    candidate: StateCandidate
+    product_count: int
+    has_pagination: bool
+    product_urls: tuple[str, ...]
+    current_page: int | None = None
+    total_pages: int | None = None
+    total_products: int | None = None
+    has_next_page: bool | None = None
+
+    def to_listing_result(self, source: str = "generic_recovery") -> StateListingResult:
+        """Convert scored candidate into a StateListingResult."""
+        return StateListingResult(
+            product_urls=self.product_urls,
+            current_page=self.current_page,
+            total_pages=self.total_pages,
+            total_products=self.total_products,
+            has_next_page=self.has_next_page,
+            source=source,
+        )
+
+
+def score_candidate(candidate: StateCandidate | object) -> CandidateScore:
+    """Evaluate and score a state candidate by discovering products and pagination signals."""
+    unwrapped = _unwrap_payload(candidate)
+    if isinstance(candidate, StateCandidate):
+        state_candidate = candidate
+    else:
+        state_candidate = StateCandidate(source="generic", payload=unwrapped, script_index=0)
+
+    discovered_urls: list[str] = []
+    seen_urls: set[str] = set()
+
+    current_page: int | None = None
+    total_pages: int | None = None
+    total_products: int | None = None
+    has_next_page: bool | None = None
+    page_size: int | None = None
+
+    for node in walk_json(unwrapped, max_depth=20):
+        if isinstance(node, Mapping):
+            if looks_like_product_record(node):
+                url = _extract_product_url_from_record(node)
+                if url and url not in seen_urls:
+                    seen_urls.add(url)
+                    discovered_urls.append(url)
+
+            # Check for pagination signals
+            if current_page is None:
+                current_page = _safe_int(
+                    _get_first_present(
+                        dict(node),
+                        ("currentPage", "page", "current_page", "pageNumber", "currentPageNumber"),
+                    )
+                )
+            if total_pages is None:
+                total_pages = _safe_int(
+                    _get_first_present(
+                        dict(node),
+                        ("totalPages", "total_pages", "pageCount", "maxPage", "totalPage"),
+                    )
+                )
+            if total_products is None:
+                total_products = _safe_int(
+                    _get_first_present(
+                        dict(node),
+                        (
+                            "totalData",
+                            "total_data",
+                            "totalProducts",
+                            "total_products",
+                            "totalCount",
+                            "count",
+                            "total",
+                        ),
+                    )
+                )
+            if has_next_page is None:
+                has_next_page = _safe_bool(
+                    _get_first_present(
+                        dict(node),
+                        ("hasNextPage", "has_next_page", "hasNext", "has_more", "hasMore"),
+                    )
+                )
+            if page_size is None:
+                page_size = _safe_int(
+                    _get_first_present(
+                        dict(node),
+                        ("pageSize", "page_size", "perPage", "rowsPerPage", "limit"),
+                    )
+                )
+
+    if total_pages is None and total_products is not None and page_size and page_size > 0:
+        total_pages = math.ceil(total_products / page_size)
+
+    if has_next_page is None and current_page is not None and total_pages is not None:
+        has_next_page = current_page < total_pages
+
+    has_pagination = any(
+        x is not None for x in (current_page, total_pages, total_products, has_next_page)
+    )
+
+    return CandidateScore(
+        candidate=state_candidate,
+        product_count=len(discovered_urls),
+        has_pagination=has_pagination,
+        product_urls=tuple(discovered_urls),
+        current_page=current_page,
+        total_pages=total_pages,
+        total_products=total_products,
+        has_next_page=has_next_page,
+    )
+
+
+def score_candidates(
+    candidates: Sequence[StateCandidate] | Sequence[object],
+) -> list[CandidateScore]:
+    """Score and rank multiple state candidates.
+
+    Candidates are ranked primarily by valid product record count (descending),
+    with presence of pagination metadata as a secondary tie-breaker.
+    """
+    scores = [
+        score_candidate(c if isinstance(c, StateCandidate) else StateCandidate("generic", c, idx))
+        for idx, c in enumerate(candidates)
+    ]
+    return sorted(
+        scores,
+        key=lambda s: (s.product_count, 1 if s.has_pagination else 0),
+        reverse=True,
+    )
+
+
+def extract_generic_state(
+    candidate_or_candidates: Sequence[StateCandidate] | StateCandidate | object,
+) -> StateListingResult:
+    """Extract listing results via generic recursive traversal and candidate scoring.
+
+    If given a sequence of candidates, evaluates all and selects the top candidate.
+    Returns StateListingResult with source='generic_recovery'.
+    """
+    if isinstance(candidate_or_candidates, (list, tuple)):
+        if not candidate_or_candidates:
+            return StateListingResult(
+                product_urls=(),
+                current_page=None,
+                total_pages=None,
+                total_products=None,
+                has_next_page=None,
+                source="generic_recovery",
+            )
+        ranked = score_candidates(candidate_or_candidates)
+        return ranked[0].to_listing_result(source="generic_recovery")
+
+    cand = (
+        candidate_or_candidates
+        if isinstance(candidate_or_candidates, StateCandidate)
+        else StateCandidate("generic", candidate_or_candidates, 0)
+    )
+    score = score_candidate(cand)
+    return score.to_listing_result(source="generic_recovery")

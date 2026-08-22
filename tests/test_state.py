@@ -8,12 +8,18 @@ import pytest
 from scrapling.parser import Adaptor
 
 from laptop_market_scraper.parsers.state import (
+    CandidateScore,
     StateCandidate,
     StateListingResult,
     TokopediaListingStateAdapter,
     decode_json_assignment,
     detect_flight_marker,
+    extract_generic_state,
     extract_state_candidates,
+    looks_like_product_record,
+    score_candidate,
+    score_candidates,
+    walk_json,
 )
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
@@ -460,4 +466,378 @@ def test_state_listing_result_immutability():
     )
     with pytest.raises(AttributeError):
         res.current_page = 2  # type: ignore[misc]
+
+
+# ---------------------------------------------------------------------------
+# Task 4: Generic Recovery & Scoring Unit Tests
+# ---------------------------------------------------------------------------
+
+
+def test_walk_json_traversal_and_depth_limit():
+    """Verify walk_json yields nested dicts, lists, handles depth limits, cycles, and unwrapping."""
+    data = {
+        "level1": {
+            "level2": {
+                "level3": {
+                    "value": "deep",
+                }
+            },
+            "array": [1, {"nested_in_arr": True}],
+        }
+    }
+
+    # Full traversal
+    all_nodes = list(walk_json(data, max_depth=10))
+    assert data in all_nodes
+    assert "deep" in all_nodes
+    assert 1 in all_nodes
+    assert {"nested_in_arr": True} in all_nodes
+
+    # Depth bounded traversal
+    shallow_nodes = list(walk_json(data, max_depth=1))
+    assert data in shallow_nodes
+    assert data["level1"] in shallow_nodes
+    assert "deep" not in shallow_nodes
+
+    # StateCandidate unwrapping
+    candidate = StateCandidate(source="test", payload={"a": [1, 2]}, script_index=0)
+    cand_nodes = list(walk_json(candidate))
+    assert {"a": [1, 2]} in cand_nodes
+    assert 1 in cand_nodes
+    assert 2 in cand_nodes
+
+    # Circular reference safety
+    cyclic_dict: dict[str, object] = {"a": 1}
+    cyclic_dict["self"] = cyclic_dict
+    cyclic_nodes = list(walk_json(cyclic_dict, max_depth=10))
+    assert len(cyclic_nodes) == 3  # cyclic_dict, 1, cyclic_dict (cycle stopped)
+
+
+def test_looks_like_product_record_positive_cases():
+    """Verify looks_like_product_record recognizes various valid product schema structures."""
+    # Standard format
+    assert looks_like_product_record({
+        "id": "12345",
+        "name": "ASUS Vivobook 14",
+        "price": "Rp 7.000.000",
+        "url": "https://www.tokopedia.com/asus-store/asus-vivobook-14",
+    }) is True
+
+    # Alternate naming conventions
+    assert looks_like_product_record({
+        "productId": 99901,
+        "title": "Lenovo Legion Pro",
+        "priceInt": 15000000,
+        "desktopUrl": "https://www.tokopedia.com/lenovo-id/lenovo-legion-pro",
+    }) is True
+
+    # Relative URL with shop evidence
+    assert looks_like_product_record({
+        "pId": "888",
+        "shop": {"name": "Official Acer Store"},
+        "productUrl": "/acer-official/acer-aspire-lite",
+    }) is True
+
+    # TopAds sponsored click URL
+    assert looks_like_product_record({
+        "id": "ads-101",
+        "sellerName": "Dell Store",
+        "link": "https://ta.tokopedia.com/promo/v1/clicks?url=https%3A%2F%2Fwww.tokopedia.com%2Fdell%2Flaptop",
+    }) is True
+
+
+def test_looks_like_product_record_noise_rejection():
+    """Verify looks_like_product_record rejects promo banners, profile links, avatars, and noise."""
+    # Banner linking to promo route
+    assert looks_like_product_record({
+        "id": "banner-1",
+        "title": "Ramadan Big Sale",
+        "url": "https://www.tokopedia.com/promo/ramadan-sale",
+    }) is False
+
+    # Explicit banner type tag
+    assert looks_like_product_record({
+        "id": "prod-1",
+        "name": "Laptop Promo",
+        "url": "https://www.tokopedia.com/shop/laptop-promo",
+        "type": "banner",
+    }) is False
+
+    # Explicit componentType carousel banner
+    assert looks_like_product_record({
+        "id": "prod-2",
+        "title": "Laptop Deal",
+        "url": "https://www.tokopedia.com/shop/laptop-deal",
+        "componentType": "carousel_banner",
+    }) is False
+
+    # Shop profile link (single path segment)
+    assert looks_like_product_record({
+        "id": "shop-10",
+        "shopName": "ASUS Official",
+        "url": "https://www.tokopedia.com/asus-official",
+    }) is False
+
+    # Static image URL
+    assert looks_like_product_record({
+        "id": "img-99",
+        "title": "Laptop Preview Image",
+        "url": "https://images.tokopedia.net/img/laptop.jpg",
+    }) is False
+
+    # External domain (shopee)
+    assert looks_like_product_record({
+        "id": "ext-1",
+        "title": "Shopee Laptop",
+        "url": "https://shopee.co.id/shop/item",
+    }) is False
+
+    # Record missing URL
+    assert looks_like_product_record({
+        "id": "123",
+        "name": "Laptop No Link",
+    }) is False
+
+    # Record missing product identity evidence
+    assert looks_like_product_record({
+        "url": "https://www.tokopedia.com/shop/laptop-item",
+        "irrelevant_field": 123,
+    }) is False
+
+    # Non-dict inputs
+    assert looks_like_product_record("string") is False  # type: ignore[arg-type]
+    assert looks_like_product_record(None) is False  # type: ignore[arg-type]
+    assert looks_like_product_record([{"id": 1, "url": "https://www.tokopedia.com/a/b"}]) is False  # type: ignore[arg-type]
+
+
+def test_score_candidate_evaluates_product_count_and_pagination():
+    """Verify score_candidate correctly counts valid products and extracts pagination metadata."""
+    payload = {
+        "customGrid": {
+            "cardList": [
+                {
+                    "productId": "101",
+                    "title": "Laptop ASUS Vivobook",
+                    "desktopUrl": "https://www.tokopedia.com/asus/vivobook-14",
+                },
+                {
+                    "productId": "102",
+                    "title": "Laptop Lenovo LOQ",
+                    "desktopUrl": "https://www.tokopedia.com/lenovo/loq-15",
+                },
+                {
+                    # Noise banner: should be excluded
+                    "id": "banner-01",
+                    "title": "Promo Banner",
+                    "url": "https://www.tokopedia.com/promo/gajian",
+                },
+            ],
+            "pageInfo": {
+                "currentPage": 2,
+                "totalPages": 10,
+                "totalProducts": 200,
+                "hasNextPage": True,
+            },
+        }
+    }
+
+    candidate = StateCandidate(source="window.__CUSTOM_STATE__", payload=payload, script_index=0)
+    score = score_candidate(candidate)
+
+    assert isinstance(score, CandidateScore)
+    assert score.candidate == candidate
+    assert score.product_count == 2
+    assert score.has_pagination is True
+    assert score.product_urls == (
+        "https://www.tokopedia.com/asus/vivobook-14",
+        "https://www.tokopedia.com/lenovo/loq-15",
+    )
+    assert score.current_page == 2
+    assert score.total_pages == 10
+    assert score.total_products == 200
+    assert score.has_next_page is True
+
+    result = score.to_listing_result()
+    assert isinstance(result, StateListingResult)
+    assert result.source == "generic_recovery"
+    assert len(result.product_urls) == 2
+
+
+def test_score_candidates_ranking_and_tie_breaker():
+    """Verify score_candidates sorts candidates by product count descending, then pagination."""
+    cand_no_prods = StateCandidate(
+        source="cand_1",
+        payload={"page": 1, "totalPages": 5},
+        script_index=0,
+    )
+    cand_2_prods_no_pag = StateCandidate(
+        source="cand_2",
+        payload={
+            "items": [
+                {"id": 1, "title": "A", "url": "https://www.tokopedia.com/shop/item-a"},
+                {"id": 2, "title": "B", "url": "https://www.tokopedia.com/shop/item-b"},
+            ]
+        },
+        script_index=1,
+    )
+    cand_5_prods_with_pag = StateCandidate(
+        source="cand_3",
+        payload={
+            "items": [
+                {"id": i, "name": f"Laptop {i}", "url": f"https://www.tokopedia.com/shop/item-{i}"}
+                for i in range(1, 6)
+            ],
+            "pagination": {"currentPage": 1, "totalPages": 10},
+        },
+        script_index=2,
+    )
+    cand_5_prods_no_pag = StateCandidate(
+        source="cand_4",
+        payload={
+            "items": [
+                {"id": i, "name": f"Laptop {i}", "url": f"https://www.tokopedia.com/shop/item-{i}"}
+                for i in range(10, 15)
+            ]
+        },
+        script_index=3,
+    )
+
+    ranked = score_candidates([
+        cand_no_prods,
+        cand_2_prods_no_pag,
+        cand_5_prods_no_pag,
+        cand_5_prods_with_pag,
+    ])
+
+    # Rank 1: 5 products + pagination
+    assert ranked[0].candidate.source == "cand_3"
+    assert ranked[0].product_count == 5
+    assert ranked[0].has_pagination is True
+
+    # Rank 2: 5 products without pagination
+    assert ranked[1].candidate.source == "cand_4"
+    assert ranked[1].product_count == 5
+    assert ranked[1].has_pagination is False
+
+    # Rank 3: 2 products
+    assert ranked[2].candidate.source == "cand_2"
+    assert ranked[2].product_count == 2
+
+    # Rank 4: 0 products
+    assert ranked[3].candidate.source == "cand_1"
+    assert ranked[3].product_count == 0
+
+
+def test_generic_recovery_on_schema_shifted_payload():
+    """Verify extract_generic_state recovers product URLs and pagination when schema shifts."""
+    shifted_payload = {
+        "catalog_layout": {
+            "feed_grid": {
+                "listings": [
+                    {
+                        "productId": "9001",
+                        "productName": "HP Pavilion Aero 13",
+                        "price": "Rp11.200.000",
+                        "product_url": "https://www.tokopedia.com/hp-official/hp-pavilion-aero-13",
+                    },
+                    {
+                        "productId": "9002",
+                        "productName": "Dell Inspiron 14",
+                        "price": "Rp13.500.000",
+                        "product_url": "https://www.tokopedia.com/dell-store/dell-inspiron-14",
+                    },
+                    {
+                        "productId": "9003",
+                        "productName": "Acer Swift Go 14",
+                        "price": "Rp12.000.000",
+                        "product_url": "https://www.tokopedia.com/acer-store/acer-swift-go-14",
+                    },
+                ],
+                "paging_metadata": {
+                    "currentPageNumber": 3,
+                    "maxPage": 15,
+                    "total_data": 450,
+                    "hasMore": True,
+                },
+            }
+        }
+    }
+
+    # Confirm known adapter does NOT match shifted schema
+    adapter = TokopediaListingStateAdapter()
+    assert adapter.supports(shifted_payload) is False
+
+    # Generic recovery parses the payload successfully
+    result = extract_generic_state(shifted_payload)
+
+    assert isinstance(result, StateListingResult)
+    assert result.source == "generic_recovery"
+    assert len(result.product_urls) == 3
+    assert result.product_urls == (
+        "https://www.tokopedia.com/hp-official/hp-pavilion-aero-13",
+        "https://www.tokopedia.com/dell-store/dell-inspiron-14",
+        "https://www.tokopedia.com/acer-store/acer-swift-go-14",
+    )
+    assert result.current_page == 3
+    assert result.total_pages == 15
+    assert result.total_products == 450
+    assert result.has_next_page is True
+
+
+def test_generic_recovery_from_html_with_shifted_schema():
+    """Verify generic recovery end-to-end on HTML containing schema-shifted state JSON."""
+    html = """
+    <html>
+      <head>
+        <script id="__NEXT_DATA__" type="application/json">
+          {
+            "props": {
+              "alternateCatalog": {
+                "items": [
+                  {"id": "701", "name": "Laptop A", "url": "https://www.tokopedia.com/shop/laptop-a"},
+                  {"id": "702", "name": "Laptop B", "url": "https://www.tokopedia.com/shop/laptop-b"}
+                ],
+                "page": 1,
+                "pageSize": 20,
+                "totalCount": 100
+              }
+            }
+          }
+        </script>
+      </head>
+      <body></body>
+    </html>
+    """
+    candidates = extract_state_candidates(html)
+    assert len(candidates) == 1
+
+    adapter = TokopediaListingStateAdapter()
+    assert adapter.supports(candidates[0]) is False
+
+    result = extract_generic_state(candidates)
+    assert result.source == "generic_recovery"
+    assert result.product_urls == (
+        "https://www.tokopedia.com/shop/laptop-a",
+        "https://www.tokopedia.com/shop/laptop-b",
+    )
+    assert result.current_page == 1
+    assert result.total_products == 100
+    assert result.total_pages == 5  # 100 / 20 = 5
+    assert result.has_next_page is True
+
+
+def test_extract_generic_state_empty_and_no_products():
+    """Verify extract_generic_state handles empty candidate sequences gracefully."""
+    empty_result = extract_generic_state([])
+    assert empty_result.product_urls == ()
+    assert empty_result.current_page is None
+    assert empty_result.total_pages is None
+    assert empty_result.total_products is None
+    assert empty_result.has_next_page is None
+    assert empty_result.source == "generic_recovery"
+
+    no_products_result = extract_generic_state({"random": {"non_product": 123}})
+    assert no_products_result.product_urls == ()
+    assert no_products_result.source == "generic_recovery"
+
 
