@@ -1,15 +1,14 @@
-import yaml
 from pathlib import Path
-from pydantic_settings import BaseSettings
+
+import yaml
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from laptop_market_scraper.models import SeedSource
 
 
 class AppSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env")
     log_level: str = "INFO"
-
-    class Config:
-        env_file = ".env"
 
 
 def load_seeds(config_path: str = "config/seeds.yaml") -> list[SeedSource]:

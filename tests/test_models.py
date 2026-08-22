@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
-from pydantic import ValidationError
+
 import pytest
+from pydantic import ValidationError
 
 from laptop_market_scraper.models import NormalizedProduct
 

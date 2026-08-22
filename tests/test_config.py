@@ -1,4 +1,3 @@
-import os
 from laptop_market_scraper.config import AppSettings, load_seeds
 
 
