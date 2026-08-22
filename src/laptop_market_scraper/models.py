@@ -80,3 +80,43 @@ class NormalizedProduct(BaseModel):
     source_query: str | None = None
     source_url: str | None = None
     source_page: int | None = None
+
+
+class SearchSeed(BaseModel):
+    query: str
+    kind: Literal["generic", "brand"]
+    brand_hint: str | None = None
+    max_pages: int = Field(default=20, gt=0)
+
+
+class SearchCategory(BaseModel):
+    id: str | None = None
+    old_id: int | None = None
+    name: str | None = None
+    breadcrumb: str | None = None
+    ga_key: str | None = None
+
+
+class SearchProduct(BaseModel):
+    product_id: str
+    name: str
+    url: str
+    price: int | None = None
+    original_price_raw: str | None = None
+    discount_percent: float | None = None
+    shop_id: str | None = None
+    shop_name: str | None = None
+    shop_city: str | None = None
+    rating: float | None = None
+    stock: int | None = None
+    category: SearchCategory = Field(default_factory=SearchCategory)
+    raw: dict = Field(default_factory=dict)
+
+
+class SearchPage(BaseModel):
+    query: str
+    page: int
+    rows: int
+    products: tuple[SearchProduct, ...] = ()
+    total_data: int | None = None
+
