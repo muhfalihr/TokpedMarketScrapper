@@ -1,0 +1,18 @@
+[Unit]
+Description=Tokopedia Laptop Research Dataset Crawler
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=dataset
+WorkingDirectory=/opt/tokopedia-laptop-dataset
+EnvironmentFile=/opt/tokopedia-laptop-dataset/.env
+ExecStart=/opt/tokopedia-laptop-dataset/.venv/bin/laptop-scraper crawl --seed-config config/seeds.yaml --crawl-dir crawl_state/tokopedia_laptop --max-items 5000
+Restart=on-failure
+RestartSec=30
+TimeoutStopSec=180
+KillSignal=SIGINT
+
+[Install]
+WantedBy=multi-user.target
