@@ -72,6 +72,44 @@ def build_decision_diff(
     return diff_df
 
 
+def build_low_price_review(
+    *,
+    products: pd.DataFrame,
+    decisions: Sequence[CleaningDecision],
+    threshold: int = 2_000_000,
+) -> pd.DataFrame:
+    """Build diagnostic review queue of valid laptops with price below threshold.
+
+    Diagnostic only — never alters eligibility decisions directly.
+    """
+    dec_map = {d.listing_key: d for d in decisions}
+
+    records = []
+    for _, row in products.iterrows():
+        key = row["listing_key"]
+        price = row.get("price")
+        d = dec_map.get(key)
+        if not d or d.eligibility_decision != EligibilityDecision.VALID_LAPTOP:
+            continue
+
+        if price is not None and pd.notna(price) and price < threshold:
+            records.append({
+                "listing_key": key,
+                "product_name": row.get("product_name", ""),
+                "product_url": row.get("product_url", ""),
+                "price": price,
+                "eligibility_decision": d.eligibility_decision.value,
+                "eligibility_reason": d.eligibility_reason.value,
+                "review_status": "PENDING_REVIEW",
+                "review_note": f"Price {price} is below diagnostic threshold {threshold}",
+            })
+
+    df = pd.DataFrame(records)
+    if not df.empty:
+        df = df.sort_values(by=["price", "listing_key"], ascending=[True, True]).reset_index(drop=True)
+    return df
+
+
 def write_cleaning_artifacts(
     *,
     decisions: Sequence[CleaningDecision],
@@ -79,8 +117,9 @@ def write_cleaning_artifacts(
     products: pd.DataFrame,
     output_dir: Path,
     previous_cleaning_decisions_path: Path | None = None,
-) -> tuple[Path, Path, Path, Path | None]:
-    """Write cleaning_decisions.csv, excluded_observations.csv, ambiguous_observations.csv, and optional decision_diff.csv.
+    low_price_threshold: int = 2_000_000,
+) -> tuple[Path, Path, Path, Path | None, Path]:
+    """Write cleaning_decisions.csv, excluded_observations.csv, ambiguous_observations.csv, decision_diff.csv, low_price_review.csv.
 
     Returns paths to the written CSV files.
     CSV row order: listing_key ASC.
@@ -131,6 +170,15 @@ def write_cleaning_artifacts(
     ambiguous_path = output_dir / "ambiguous_observations.csv"
     ambiguous_df.to_csv(ambiguous_path, index=False)
 
+    # Low-price review queue
+    low_price_df = build_low_price_review(
+        products=products,
+        decisions=decisions,
+        threshold=low_price_threshold,
+    )
+    low_price_path = output_dir / "low_price_review.csv"
+    low_price_df.to_csv(low_price_path, index=False)
+
     # Optional decision diff
     diff_path: Path | None = None
     if (
@@ -146,4 +194,4 @@ def write_cleaning_artifacts(
         diff_path = output_dir / "decision_diff.csv"
         diff_df.to_csv(diff_path, index=False)
 
-    return cleaning_path, excluded_path, ambiguous_path, diff_path
+    return cleaning_path, excluded_path, ambiguous_path, diff_path, low_price_path

@@ -207,7 +207,7 @@ def freeze_ml_dataset(
         baseline_dec_path = output_dir / "ml-dataset-v1.0" / "cleaning_decisions.csv"
 
     # Write cleaning artifacts
-    cleaning_path, excluded_path, ambiguous_path, _diff_path = write_cleaning_artifacts(
+    cleaning_path, excluded_path, ambiguous_path, _diff_path, _low_price_path = write_cleaning_artifacts(
         decisions=decisions,
         review_resolutions=review_resolutions,
         products=data.products,

@@ -2,7 +2,7 @@
   {
     "case_id": "power_cable_notebook",
     "product_name": "KABEL POWER FOR NOTEBOOK BAHAN TEBAL PANJANG 2 M FOR LAPTOP NOTEBOOK",
-    "expected_reason": "NON_LAPTOP_COMPONENT"
+    "expected_reason": "NON_LAPTOP_ACCESSORY"
   },
   {
     "case_id": "ram_laptop",
@@ -52,6 +52,26 @@
   {
     "case_id": "gaming_laptop_adaptor",
     "product_name": "INNERGIE T24 240W GAMING LAPTOP POWER ADAPTOR",
+    "expected_reason": "NON_LAPTOP_ACCESSORY"
+  },
+  {
+    "case_id": "ac_plugin",
+    "product_name": "Ac Plugin port indonesia For compatible all macbook Pro / Macbook AIr",
+    "expected_reason": "NON_LAPTOP_ACCESSORY"
+  },
+  {
+    "case_id": "led_screen_start",
+    "product_name": "LED 15.6 Slim 30 Pin for Laptop ASUS Tuf Gaming FX505 Small Frame",
+    "expected_reason": "NON_LAPTOP_COMPONENT"
+  },
+  {
+    "case_id": "motherboard",
+    "product_name": "motherboard lenovo thinkpad helix 2 ultrabook pro intel core m-5y71 cpu ram 8",
+    "expected_reason": "NON_LAPTOP_COMPONENT"
+  },
+  {
+    "case_id": "armor_case",
+    "product_name": "Essential Armor Case for MacBook Pro 14\" 16\" (M4/M3 Max & Pro) (2023-2025) Case - Ice - 14 Inch",
     "expected_reason": "NON_LAPTOP_ACCESSORY"
   }
 ]

@@ -19,6 +19,21 @@ class EligibilityReason(StrEnum):
     AMBIGUOUS_PRODUCT = "AMBIGUOUS_PRODUCT"
 
 
+class ProductHeadCategory(StrEnum):
+    LAPTOP = "LAPTOP"
+    COMPONENT = "COMPONENT"
+    ACCESSORY = "ACCESSORY"
+    PAPER_NOTEBOOK = "PAPER_NOTEBOOK"
+    PLACEHOLDER = "PLACEHOLDER"
+    UNKNOWN = "UNKNOWN"
+
+
+class ProductHeadAssessment(BaseModel):
+    category: ProductHeadCategory
+    matched_phrase: str | None = None
+    evidence: tuple[str, ...] = ()
+
+
 class ReviewCountSemanticStatus(StrEnum):
     OBSERVED_COUNT = "OBSERVED_COUNT"
     EXPLICIT_ZERO = "EXPLICIT_ZERO"

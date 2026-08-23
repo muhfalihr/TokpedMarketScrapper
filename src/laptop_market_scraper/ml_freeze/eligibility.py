@@ -2,7 +2,7 @@
 
 Classifies products as VALID_LAPTOP, EXCLUDE, or AMBIGUOUS based on
 title semantics and raw evidence — never on price magnitude alone.
-Uses boundary-aware and context-aware lexical matchers to prevent false positives.
+Uses boundary-aware and context-aware lexical matchers to prevent false positives and false negatives.
 """
 
 from __future__ import annotations
@@ -17,6 +17,8 @@ from laptop_market_scraper.ml_freeze.models import (
     EligibilityDecision,
     EligibilityReason,
     MLFreezeConfig,
+    ProductHeadAssessment,
+    ProductHeadCategory,
 )
 
 
@@ -65,6 +67,132 @@ def has_strong_laptop_identity(title: str) -> bool:
     return bool(LAPTOP_BRAND_MODEL_RE.search(title))
 
 
+# --- Product Head Classifier ---
+
+
+def classify_product_head(title: str) -> ProductHeadAssessment:
+    """Classify the primary product identity (product head) being sold from title.
+
+    Determines if title primary product is LAPTOP, COMPONENT, ACCESSORY,
+    PAPER_NOTEBOOK, PLACEHOLDER, or UNKNOWN without using price.
+    """
+    normalized = _normalize_title(title)
+
+    # 1. Paper Notebook Check
+    if re.search(r"\bnotebook\s+a[34567]\b", normalized) or re.search(
+        r"\b(buku notebook|notebook spiral|notebook paper|notebook binder|notebook tulis)\b",
+        normalized,
+    ):
+        return ProductHeadAssessment(
+            category=ProductHeadCategory.PAPER_NOTEBOOK,
+            matched_phrase="paper notebook title pattern",
+            evidence=("title indicates paper stationery notebook",),
+        )
+
+    # 2. Placeholder / Bonus Check
+    if re.search(r"^\s*(\[\s*new\s*\]\s*)?(bonus|hadiah)\s+(pembelian|untuk)", normalized) or re.search(
+        r"\b(bubble wrap|screen protector keyboard protector|keyboard protector screen protector|macbook air & macbook pro office|macbook air macbook pro office)\b",
+        normalized,
+    ):
+        return ProductHeadAssessment(
+            category=ProductHeadCategory.PLACEHOLDER,
+            matched_phrase="bonus/placeholder title pattern",
+            evidence=("title indicates bonus placeholder listing",),
+        )
+
+    # 3. Power Accessory / Cable / Adapter / Charger Check
+    if (
+        re.search(r"\bkabel\s+power\b", normalized)
+        or re.search(r"\bpower\s+adapto?r\b", normalized)
+        or re.search(r"^\s*(charger|adaptor|adapter|ac\s+plugin|plugin\s+port)\b", normalized)
+        or re.search(r"\b(charger|adaptor|adapter|ac\s+plugin)\s+(laptop|notebook|for|indonesia|macbook)\b", normalized)
+    ) and not (
+        has_strong_laptop_identity(title)
+        and re.search(r"\b(included|free|bonus|with)\b", normalized)
+        and not re.search(r"^\s*(kabel|power|charger|adaptor|adapter|ac\s+plugin)\b", normalized)
+    ):
+        return ProductHeadAssessment(
+            category=ProductHeadCategory.ACCESSORY,
+            matched_phrase="power cable/adapter/charger product head",
+            evidence=("title indicates power accessory product head",),
+        )
+
+    # 4. Memory / Storage / Battery / Motherboard Component Check
+    if (
+        re.search(r"^\s*(ram|sodimm|memory|motherboard|mobo|mainboard)\b", normalized)
+        or (
+            re.search(r"\b(ram laptop|ram notebook|sodimm ddr)\b", normalized)
+            and not re.search(r"\b\d+\s*gb\s+ram\s+(laptop|notebook)\b", normalized)
+        )
+        or re.search(r"\b(motherboard|mobo|mainboard)\b", normalized)
+        or re.search(r"^\s*ssd\b", normalized)
+        or re.search(r"\bssd\s+(toshiba|samsung|v-gen|kingston|adata|lexar|crucial|wd)\b", normalized)
+        or re.search(r"^\s*(baterai|battery)\b", normalized)
+        or re.search(r"\b(baterai|battery)\s+(battery|laptop|notebook|ultrabook|dell|lenovo|asus|hp|acer|macbook)\b", normalized)
+        or re.search(r"\b(hdd|hard disk|harddisk)\s+(laptop|notebook)\b", normalized)
+    ) and not (
+        has_strong_laptop_identity(title)
+        and re.search(r"^\s*(laptop|notebook|ultrabook|macbook|asus|lenovo|hp|dell|acer|msi|thinkpad|ideapad)\b", normalized)
+        and not re.search(r"^\s*(ram|sodimm|ssd|baterai|battery|hdd|motherboard|mobo|mainboard)\b", normalized)
+    ):
+        return ProductHeadAssessment(
+            category=ProductHeadCategory.COMPONENT,
+            matched_phrase="memory/storage/battery/motherboard component product head",
+            evidence=("title indicates component product head",),
+        )
+
+    # 5. Display / Bracket / Connector / Flex Cable Component Check
+    if (
+        re.search(r"^\s*(led lcd|layar lcd|panel lcd|lcd led|lcd|led)\s+\d", normalized)
+        or re.search(r"^\s*(led lcd|layar lcd|panel lcd|lcd led|lcd)\b", normalized)
+        or re.search(r"\b(layar lcd|panel lcd|lcd led)\b", normalized)
+        or re.search(r"\b(bracket|frame)\s+(hdd|ssd)\b", normalized)
+        or re.search(r"\b(konektor|connector)\s+(fleksibel|flex)\b", normalized)
+        or re.search(r"\b(kabel fleksibel|flex cable)\b", normalized)
+    ) and not (
+        has_strong_laptop_identity(title)
+        and re.search(r"\b(touch|display|screen|ips|fhd|wuxga|oled)\b", normalized)
+        and not re.search(r"^\s*(led lcd|layar lcd|panel lcd|lcd led|konektor|kabel fleksibel|bracket|led\s+\d)\b", normalized)
+    ):
+        return ProductHeadAssessment(
+            category=ProductHeadCategory.COMPONENT,
+            matched_phrase="display/connector component product head",
+            evidence=("title indicates display/connector component product head",),
+        )
+
+    # 6. Security Lock / Protector / Casing / Shell / Armor Case Check
+    if (
+        re.search(r"\b(security lock|kunci gembok|kunci laptop|gembok laptop|notebook lock)\b", normalized)
+        or re.search(r"\b(screen protector|keyboard protector)\b", normalized)
+        or re.search(r"^\s*(casing|shell|armor case|case for)\b", normalized)
+        or re.search(r"\b(casing notebook|casing laptop|laptop shell|shell for|armor case|case for macbook|case for laptop)\b", normalized)
+    ) and not (
+        has_strong_laptop_identity(title)
+        and re.search(r"^\s*(laptop|notebook|ultrabook|macbook|asus|lenovo|hp|dell|acer|msi|thinkpad|ideapad)\b", normalized)
+        and not re.search(r"^\s*(security lock|kunci|screen protector|keyboard protector|casing|shell|armor case)\b", normalized)
+    ):
+        category = ProductHeadCategory.ACCESSORY if re.search(r"\b(lock|protector|case)\b", normalized) else ProductHeadCategory.COMPONENT
+        return ProductHeadAssessment(
+            category=category,
+            matched_phrase="lock/protector/casing product head",
+            evidence=("title indicates lock/protector/casing product head",),
+        )
+
+    # 7. Strong Laptop Check
+    if has_strong_laptop_identity(title):
+        return ProductHeadAssessment(
+            category=ProductHeadCategory.LAPTOP,
+            matched_phrase="laptop brand/model identity",
+            evidence=("title indicates laptop product head",),
+        )
+
+    return ProductHeadAssessment(
+        category=ProductHeadCategory.UNKNOWN,
+        matched_phrase=None,
+        evidence=("insufficient title evidence for product head",),
+    )
+
+
 # --- Invalid Price Semantics ---
 
 
@@ -100,7 +228,6 @@ def contains_component_semantics(title: str, config: MLFreezeConfig) -> tuple[bo
 
     # 1. Shell component check (e.g. "Laptop Shell For...", "Replacement Shell")
     if SHELL_TOKEN_RE.search(normalized):
-        # "Seashell" color is excluded by token boundary
         if re.search(r"\b(laptop shell|shell for|replacement shell|casing)\b", normalized):
             return True, "shell"
         if not is_laptop:
@@ -108,31 +235,25 @@ def contains_component_semantics(title: str, config: MLFreezeConfig) -> tuple[bo
 
     # 2. Keyboard component check (e.g. "Keyboard Docking", "Keyboard Laptop ThinkPad T430")
     if KEYBOARD_TOKEN_RE.search(normalized):
-        # Explicit component phrases (always exclude, regardless of target laptop model)
         if re.search(
             r"\b(keyboard docking|keyboard replacement|keyboard laptop|keyboard for|keyborad laptop|docking keyboard)\b",
             normalized,
         ):
             return True, "keyboard"
-        # If title starts with Keyboard / Keyborad (e.g. "Keyboard Lenovo...")
         if re.match(r"^\s*keybor?ad\b", normalized) and not re.search(r"\b(backlit|rgb)\b", normalized):
             return True, "keyboard"
-        # If NOT strong laptop identity and contains keyboard
         if not is_laptop and not re.search(r"\b(backlit|rgb)\b", normalized):
             return True, "keyboard"
 
     # 3. LCD component check (e.g. "LCD LED HP...", "LCD Laptop...", "Replacement LCD")
     if LCD_TOKEN_RE.search(normalized):
-        # Check for LCD replacement panel phrases
         if re.search(
             r"\b(lcd led|lcd laptop|layar lcd|replacement lcd|panel lcd|lcd screen replacement)\b",
             normalized,
         ):
             return True, "lcd"
-        # If title starts with LCD / Layar LCD (e.g. "LCD LED HP Ultrabook...")
         if re.match(r"^\s*(lcd|layar lcd)\b", normalized):
             return True, "lcd"
-        # If NOT strong laptop identity and contains lcd
         if not is_laptop and not re.search(r"\b(touch|display|screen)\b", normalized):
             return True, "lcd"
 
@@ -162,12 +283,10 @@ def contains_accessory_semantics(title: str, config: MLFreezeConfig) -> tuple[bo
 
     # 1. Sleeve accessory check
     if SLEEVE_TOKEN_RE.search(normalized) or "sleevecase" in normalized:
-        # Bundle context (+ sleeve, bonus sleeve, free sleeve, include sleeve) on a valid laptop
         if is_laptop and re.search(r"(\+|\bbonus\b|\bfree\b|\binclude\b|\bwith\b)\s*sleeve", normalized):
             return False, None
         if is_laptop and re.search(r"sleeve\s*(\bbonus\b|\bfree\b|\binclude\b)", normalized):
             return False, None
-        # Standalone sleeve product (e.g. "Sleevecase Laptop...", "Acer Sleevecase...", "Sleeve Laptop 14 inch")
         if re.search(
             r"\b(sleevecase|sleeve case|sleeve laptop|sleeve for|laptop sleeve)\b",
             normalized,
@@ -226,7 +345,42 @@ def assess_ml_eligibility(
             evidence=tuple(evidence),
         )
 
-    # Priority 2: Check for component (LCD, keyboard, cable, shell, etc.)
+    # Priority 2: Product Head Classification
+    head_assessment = classify_product_head(title)
+    if head_assessment.category == ProductHeadCategory.PAPER_NOTEBOOK:
+        evidence.append(f"product head is PAPER_NOTEBOOK ({head_assessment.matched_phrase})")
+        return EligibilityAssessment(
+            listing_key=listing_key,
+            decision=EligibilityDecision.EXCLUDE,
+            reason=EligibilityReason.NON_LAPTOP_OTHER,
+            evidence=tuple(evidence),
+        )
+    elif head_assessment.category == ProductHeadCategory.PLACEHOLDER:
+        evidence.append(f"product head is PLACEHOLDER ({head_assessment.matched_phrase})")
+        return EligibilityAssessment(
+            listing_key=listing_key,
+            decision=EligibilityDecision.EXCLUDE,
+            reason=EligibilityReason.NON_LAPTOP_ACCESSORY,
+            evidence=tuple(evidence),
+        )
+    elif head_assessment.category == ProductHeadCategory.COMPONENT:
+        evidence.append(f"product head is COMPONENT ({head_assessment.matched_phrase})")
+        return EligibilityAssessment(
+            listing_key=listing_key,
+            decision=EligibilityDecision.EXCLUDE,
+            reason=EligibilityReason.NON_LAPTOP_COMPONENT,
+            evidence=tuple(evidence),
+        )
+    elif head_assessment.category == ProductHeadCategory.ACCESSORY:
+        evidence.append(f"product head is ACCESSORY ({head_assessment.matched_phrase})")
+        return EligibilityAssessment(
+            listing_key=listing_key,
+            decision=EligibilityDecision.EXCLUDE,
+            reason=EligibilityReason.NON_LAPTOP_ACCESSORY,
+            evidence=tuple(evidence),
+        )
+
+    # Priority 3: Check for component (LCD, keyboard, cable, shell, etc.)
     has_component, comp_term = contains_component_semantics(title, config)
     if has_component:
         evidence.append(f"title contains component term '{comp_term}'")
@@ -237,7 +391,7 @@ def assess_ml_eligibility(
             evidence=tuple(evidence),
         )
 
-    # Priority 3: Check for accessory (charger, sleeve, stand, etc.)
+    # Priority 4: Check for accessory (charger, sleeve, stand, etc.)
     has_accessory, acc_term = contains_accessory_semantics(title, config)
     if has_accessory:
         evidence.append(f"title contains accessory term '{acc_term}'")
