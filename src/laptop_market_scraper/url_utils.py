@@ -18,6 +18,7 @@ __all__ = (
     "is_tokopedia_product_url",
     "listing_fingerprint",
     "make_listing_key",
+    "search_page_fingerprint",
 )
 
 _TRACKING_PARAMS = frozenset({
@@ -272,4 +273,28 @@ def listing_fingerprint(product_urls: Sequence[str]) -> str:
     sorted_urls = sorted(canonical_set)
     payload = "\n".join(sorted_urls).encode("utf-8")
     return sha256(payload).hexdigest()
+
+
+def search_page_fingerprint(products: Sequence[Any]) -> str:
+    """Generate a deterministic SHA-256 fingerprint for a sequence of search products or product IDs.
+
+    Hashes ordered product IDs joined by commas.
+    """
+    if not products:
+        return sha256(b"").hexdigest()
+
+    ids: list[str] = []
+    for item in products:
+        if hasattr(item, "product_id"):
+            ids.append(str(item.product_id))
+        elif isinstance(item, dict) and "product_id" in item:
+            ids.append(str(item["product_id"]))
+        elif isinstance(item, dict) and "id" in item:
+            ids.append(str(item["id"]))
+        elif isinstance(item, str):
+            ids.append(item)
+
+    payload = ",".join(ids).encode("utf-8")
+    return sha256(payload).hexdigest()
+
 

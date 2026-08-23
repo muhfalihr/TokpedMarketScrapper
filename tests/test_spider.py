@@ -28,16 +28,17 @@ def spider(mock_store):
 async def test_start_requests_yields_from_seeds(spider):
     with patch("laptop_market_scraper.spiders.tokopedia_laptop.load_seeds") as mock_load:
         mock_seed = MagicMock()
-        mock_seed.url = "https://example.com"
-        mock_seed.source_type = "search"
         mock_seed.query = "laptop"
+        mock_seed.kind = "generic"
+        mock_seed.max_pages = 20
         mock_load.return_value = [mock_seed]
 
         requests = [r async for r in spider.start_requests()]
         assert len(requests) == 1
         req = requests[0]
-        assert req.url == "https://example.com"
-        assert req.callback == spider.parse_listing
+        assert req.method == "POST"
+        assert "searchProductV5" in req.url
+        assert req.callback == spider.parse_search_page
 
 
 @pytest.mark.asyncio

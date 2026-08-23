@@ -1,12 +1,26 @@
+search:
+  rows: 60
+  category_sc: "297"
+  sort_code: "23"
+  max_pages_per_seed: 20
+
 seeds:
-  - source_type: search
-    query: laptop
-    url: "https://www.tokopedia.com/search?st=product&q=laptop"
-
-  - source_type: search
-    query: notebook
-    url: "https://www.tokopedia.com/search?st=product&q=notebook"
-
-  - source_type: search
-    query: laptop gaming
-    url: "https://www.tokopedia.com/search?st=product&q=laptop%20gaming"
+  - query: "laptop"
+    kind: generic
+  - query: "notebook"
+    kind: generic
+  - query: "ultrabook"
+    kind: generic
+  - query: "macbook"
+    kind: generic
+  - query: "laptop gaming"
+    kind: generic
+  - query: "laptop asus"
+    kind: brand
+    brand_hint: "ASUS"
+  - query: "laptop lenovo"
+    kind: brand
+    brand_hint: "Lenovo"
+  - query: "laptop acer"
+    kind: brand
+    brand_hint: "Acer"
