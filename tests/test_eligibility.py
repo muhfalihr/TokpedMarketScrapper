@@ -1,8 +1,6 @@
 import pytest
 
 from laptop_market_scraper.eligibility import (
-    ALLOWED_BREADCRUMB_EXACT,
-    ALLOWED_BREADCRUMB_PREFIXES,
     EligibilityResult,
     evaluate_laptop_eligibility,
     is_laptop_candidate,

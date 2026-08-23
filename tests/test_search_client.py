@@ -1,7 +1,7 @@
 """Unit tests for Tokopedia searchProductV5 GraphQL request builder."""
 
-from urllib.parse import parse_qsl
 from pathlib import Path
+from urllib.parse import parse_qsl
 
 import pytest
 

@@ -20,7 +20,7 @@ def get_contract_sha256(contract_path: str | Path = "config/search_product_v5_co
         data = json.loads(path.read_text(encoding="utf-8"))
         if isinstance(data, dict) and "sha256" in data:
             return str(data["sha256"])
-    except Exception:
+    except (json.JSONDecodeError, OSError):
         pass
 
     hasher = hashlib.sha256()
@@ -58,7 +58,7 @@ def generate_manifest(
     search_cfg = {}
     try:
         search_cfg = load_search_config(seed_config)
-    except Exception:
+    except (OSError, ValueError, TypeError):
         pass
 
     if seed_queries is None:
@@ -67,7 +67,7 @@ def generate_manifest(
             seed_queries = [
                 getattr(s, "query", "") for s in seeds if getattr(s, "query", None)
             ]
-        except Exception:
+        except (OSError, ValueError, TypeError):
             seed_queries = []
 
     search_rows = search_cfg.get("rows", 60)
@@ -78,7 +78,7 @@ def generate_manifest(
         git_commit = subprocess.check_output(
             ["git", "rev-parse", "HEAD"], text=True
         ).strip()
-    except Exception:
+    except (subprocess.SubprocessError, OSError):
         git_commit = "unknown"
 
     try:

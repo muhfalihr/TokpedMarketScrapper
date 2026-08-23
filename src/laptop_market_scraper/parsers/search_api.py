@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from laptop_market_scraper.models import SearchCategory, SearchPage, SearchProduct
 
@@ -17,13 +18,11 @@ __all__ = (
 class SearchGraphQLError(Exception):
     """Raised when the GraphQL response contains top-level errors."""
 
-    pass
 
 
 class SearchSchemaError(Exception):
     """Raised when the response payload does not conform to expected searchProductV5 schema."""
 
-    pass
 
 
 def parse_search_response(
@@ -60,7 +59,7 @@ def parse_search_response(
     if not isinstance(root, Mapping):
         raise SearchSchemaError(f"Root payload element is not a dict: {type(root)}")
 
-    if "errors" in root and root["errors"]:
+    if root.get("errors"):
         raise SearchGraphQLError(f"GraphQL error response: {root['errors']}")
 
     data = root.get("data")

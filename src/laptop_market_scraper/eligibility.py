@@ -144,7 +144,4 @@ def is_laptop_candidate(title: str, breadcrumbs: tuple[str, ...] | str = ()) -> 
             return True
 
     # Fallback for title-based check when breadcrumb is missing or non-standard
-    if any(term in title_lower for term in _POSITIVE_TITLE_TERMS):
-        return True
-
-    return False
+    return any(term in title_lower for term in _POSITIVE_TITLE_TERMS)

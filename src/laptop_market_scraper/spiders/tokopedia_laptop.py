@@ -135,7 +135,7 @@ class TokopediaLaptopSpider(Spider):
 
         try:
             payload = response.json()
-        except Exception:
+        except (ValueError, TypeError, AttributeError):
             import json
             payload = json.loads(response.text)
 
@@ -172,23 +172,22 @@ class TokopediaLaptopSpider(Spider):
             eligibility = evaluate_laptop_eligibility(product)
 
             # 3. Schedule product detail GET request if accepted and unique
-            if eligibility.accepted:
-                if listing_key not in self.seen_listing_keys:
-                    self.seen_listing_keys.add(listing_key)
-                    self.accepted_unique_count += 1
+            if eligibility.accepted and listing_key not in self.seen_listing_keys:
+                self.seen_listing_keys.add(listing_key)
+                self.accepted_unique_count += 1
 
-                    if self.max_items is None or self.accepted_unique_count <= self.max_items:
-                        yield Request(
-                            url=product.url,
-                            callback=self.parse_product_page,
-                            meta={
-                                "source_type": "search",
-                                "source_query": query,
-                                "source_url": product.url,
-                                "source_page": page,
-                                "seed_kind": meta.get("seed_kind"),
-                            },
-                        )
+                if self.max_items is None or self.accepted_unique_count <= self.max_items:
+                    yield Request(
+                        url=product.url,
+                        callback=self.parse_product_page,
+                        meta={
+                            "source_type": "search",
+                            "source_query": query,
+                            "source_url": product.url,
+                            "source_page": page,
+                            "seed_kind": meta.get("seed_kind"),
+                        },
+                    )
 
         # Safe Pagination
         fp = search_page_fingerprint(search_page.products)

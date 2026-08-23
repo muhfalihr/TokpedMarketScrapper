@@ -1,15 +1,16 @@
 """Dataset quality report and reproducibility manifest generation."""
 
-from collections import defaultdict
 import json
-from datetime import datetime
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, Field
 
-from laptop_market_scraper.eligibility import evaluate_laptop_eligibility, _extract_breadcrumb_and_name
-from laptop_market_scraper.manifest import write_manifest
+from laptop_market_scraper.eligibility import (
+    _extract_breadcrumb_and_name,
+    evaluate_laptop_eligibility,
+)
 from laptop_market_scraper.storage import SQLiteStore
 
 
@@ -103,8 +104,8 @@ def generate_quality_report(
 
         if isinstance(item, dict) and "accepted" in item:
             accepted = bool(item["accepted"])
-        elif hasattr(item, "accepted") and isinstance(getattr(item, "accepted"), bool):
-            accepted = bool(getattr(item, "accepted"))
+        elif hasattr(item, "accepted") and isinstance(item.accepted, bool):
+            accepted = bool(item.accepted)
         else:
             accepted = evaluate_laptop_eligibility(item).accepted
 

@@ -1,6 +1,5 @@
 """Command-line interface for the Tokopedia Laptop Scraper."""
 
-import json
 import random
 import string
 from datetime import UTC, datetime
@@ -9,6 +8,7 @@ from pathlib import Path
 import typer
 from scrapling import Fetcher
 
+from laptop_market_scraper.manifest import generate_manifest, write_manifest
 from laptop_market_scraper.parsers.listing import parse_listing_page
 from laptop_market_scraper.parsers.state import (
     FLIGHT_MARKER,
@@ -17,8 +17,7 @@ from laptop_market_scraper.parsers.state import (
     extract_state_candidates,
     score_candidates,
 )
-from laptop_market_scraper.manifest import generate_manifest, write_manifest
-from laptop_market_scraper.quality import build_quality_report, export_quality_report, generate_quality_report
+from laptop_market_scraper.quality import export_quality_report, generate_quality_report
 from laptop_market_scraper.spiders.tokopedia_laptop import TokopediaLaptopSpider
 from laptop_market_scraper.storage import SQLiteStore
 

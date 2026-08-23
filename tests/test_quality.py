@@ -111,6 +111,7 @@ def test_generate_quality_report_aggregates_search_metrics():
 
 def test_export_quality_report(tmp_path):
     import json
+
     from laptop_market_scraper.quality import export_quality_report
 
     data = {"search_pages_fetched": 5, "eligibility_rate": 0.8}
