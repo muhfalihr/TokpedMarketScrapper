@@ -12,6 +12,9 @@ import pandas as pd
 
 def render_kaggle_metadata(dataset_id: str, title: str, subtitle: str, license_name: str = "CC-BY-SA-4.0") -> dict:
     """Render dataset-metadata.json dict for Kaggle API."""
+    if not (20 <= len(subtitle) <= 80):
+        raise ValueError(f"Kaggle subtitle length must be between 20 and 80 characters (got {len(subtitle)})")
+
     return {
         "title": title,
         "id": dataset_id,
@@ -125,7 +128,7 @@ def prepare_kaggle_release(
     output_dir: Path,
     dataset_id: str = "muhfalihr/tokopedia-laptop-market-dataset",
     title: str = "Tokopedia Laptop Market Dataset (2026)",
-    subtitle: str = "Cleaned, audited, and semantically reconciled dataset of Tokopedia laptop search listings",
+    subtitle: str = "Cleaned and audited dataset of Tokopedia laptop search listings",
     license_name: str = "CC-BY-SA-4.0",
 ) -> Path:
     """Prepare Kaggle dataset release files in output_dir."""

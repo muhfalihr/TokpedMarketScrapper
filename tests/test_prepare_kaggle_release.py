@@ -16,12 +16,23 @@ def test_render_kaggle_metadata():
     meta = render_kaggle_metadata(
         dataset_id="user/dataset-name",
         title="Test Title",
-        subtitle="Test Subtitle",
+        subtitle="Valid subtitle string with sufficient length",
         license_name="CC-BY-SA-4.0",
     )
     assert meta["id"] == "user/dataset-name"
     assert meta["title"] == "Test Title"
     assert meta["licenses"][0]["name"] == "CC-BY-SA-4.0"
+
+
+def test_render_kaggle_metadata_validates_subtitle_length():
+    import pytest
+
+    with pytest.raises(ValueError, match="Kaggle subtitle length must be between 20 and 80"):
+        render_kaggle_metadata(
+            dataset_id="user/dataset-name",
+            title="Test Title",
+            subtitle="Too short",
+        )
 
 
 def test_render_kaggle_readme():
