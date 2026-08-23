@@ -20,7 +20,15 @@ from laptop_market_scraper.ml_freeze.manifest import (
     write_manifest,
 )
 from laptop_market_scraper.ml_freeze.matrices import build_ml_matrices
-from laptop_market_scraper.ml_freeze.render import write_cleaning_artifacts
+from laptop_market_scraper.ml_freeze.render import (
+    build_low_price_review,
+    render_release_signoff,
+    write_cleaning_artifacts,
+)
+from laptop_market_scraper.ml_freeze.review_gate import (
+    load_low_price_review_decisions,
+    validate_low_price_review_gate,
+)
 from laptop_market_scraper.ml_freeze.review_semantics import resolve_review_count
 from laptop_market_scraper.ml_freeze.validate import validate_frozen_matrices
 from laptop_market_scraper.storage import SQLiteStore
@@ -60,8 +68,9 @@ def _write_readme(output_dir: Path, manifest: dict) -> Path:
     r1 = manifest["representations"]["R1"]
     r2 = manifest["representations"]["R2"]
     cleaning = manifest["cleaning"]
+    artifact_version = manifest["artifact"].removeprefix("ml-dataset-")
 
-    readme_content = f"""# ML Dataset v1.0
+    readme_content = f"""# ML Dataset {artifact_version}
 
 ## Source
 - Run ID: {manifest['source_run_id']}
@@ -108,6 +117,11 @@ def freeze_ml_dataset(
     extreme_review_path: Path,
     missingness_review_path: Path,
     output_dir: Path,
+    review_decisions_path: Path | None = None,
+    baseline_decisions_path: Path | None = None,
+    baseline_artifact: str = "ml-dataset-v1.0.1",
+    artifact_version: str | None = None,
+    strict: bool = False,
     dry_run: bool = False,
 ) -> FreezeResult:
     """Execute the full ML dataset freeze pipeline.
@@ -119,6 +133,9 @@ def freeze_ml_dataset(
     """
     # Load config
     config = load_ml_freeze_config(config_path)
+
+    if artifact_version:
+        config.artifact_name = artifact_version
 
     # Load all source data
     data = load_ml_freeze_input(
@@ -153,7 +170,7 @@ def freeze_ml_dataset(
         )
         review_resolutions[key] = resolution
 
-    # Build cleaning decisions
+    # Build initial cleaning decisions
     decisions = []
     for _, row in data.products.iterrows():
         key = row["listing_key"]
@@ -163,6 +180,17 @@ def freeze_ml_dataset(
             review_resolution=review_resolutions[key],
         )
         decisions.append(decision)
+
+    # Low-price manual review gate
+    low_price_req_df = build_low_price_review(products=data.products, decisions=decisions)
+    review_decisions_tuples = ()
+    if review_decisions_path and review_decisions_path.exists():
+        review_decisions_tuples = load_low_price_review_decisions(review_decisions_path)
+
+    review_gate = validate_low_price_review_gate(
+        required_review=low_price_req_df,
+        decisions=review_decisions_tuples,
+    )
 
     # Build matrices
     identity_columns = config.outputs.include_identity_columns
@@ -178,6 +206,8 @@ def freeze_ml_dataset(
         source_products=data.products,
         matrices=matrices,
         decisions=decisions,
+        low_price_review_gate=review_gate,
+        require_release_review=strict,
     )
 
     if not validation.passed:
@@ -202,9 +232,11 @@ def freeze_ml_dataset(
     pq.write_table(pa.Table.from_pandas(matrices.r2), r2_path)
 
     # Check for baseline cleaning decisions for before/after diff
-    baseline_dec_path = output_dir / "baseline_cleaning_decisions.csv"
-    if not baseline_dec_path.exists():
-        baseline_dec_path = output_dir / "ml-dataset-v1.0" / "cleaning_decisions.csv"
+    baseline_dec_path = baseline_decisions_path
+    if not baseline_dec_path or not baseline_dec_path.exists():
+        baseline_dec_path = output_dir / "baseline_cleaning_decisions.csv"
+        if not baseline_dec_path.exists():
+            baseline_dec_path = output_dir / "ml-dataset-v1.0.1" / "cleaning_decisions.csv"
 
     # Write cleaning artifacts
     cleaning_path, excluded_path, ambiguous_path, _diff_path, _low_price_path = write_cleaning_artifacts(
@@ -212,8 +244,14 @@ def freeze_ml_dataset(
         review_resolutions=review_resolutions,
         products=data.products,
         output_dir=staging_dir,
-        previous_cleaning_decisions_path=baseline_dec_path if baseline_dec_path.exists() else None,
+        previous_cleaning_decisions_path=baseline_dec_path if baseline_dec_path and baseline_dec_path.exists() else None,
+        previous_artifact=baseline_artifact,
+        current_artifact=config.artifact_name,
     )
+
+    # Copy review decisions CSV if available
+    if review_decisions_path and review_decisions_path.exists():
+        shutil.copy(review_decisions_path, staging_dir / "low_price_review_decisions.csv")
 
     # Build and write manifest
     source_paths = {
@@ -241,6 +279,8 @@ def freeze_ml_dataset(
         artifact_paths=artifact_paths_map,
         git_commit=git_commit,
         acquisition_tag="dataset-acquisition-v1.0",
+        review_gate=review_gate,
+        review_decisions_path=review_decisions_path if review_decisions_path and review_decisions_path.exists() else None,
     )
 
     manifest_path = staging_dir / "ml_dataset_manifest.json"
@@ -248,6 +288,15 @@ def freeze_ml_dataset(
 
     # Write README
     readme_path = _write_readme(staging_dir, manifest)
+
+    # Write RELEASE_SIGNOFF.md
+    signoff_content = render_release_signoff(
+        manifest=manifest,
+        review_gate=review_gate,
+        validation=validation,
+    )
+    signoff_path = staging_dir / "RELEASE_SIGNOFF.md"
+    signoff_path.write_text(signoff_content, encoding="utf-8")
 
     # Atomic rename (skip for dry run — already in preview dir)
     if not dry_run:

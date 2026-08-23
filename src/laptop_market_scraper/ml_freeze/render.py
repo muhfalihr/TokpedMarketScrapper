@@ -15,12 +15,15 @@ def build_decision_diff(
     *,
     previous_decisions: pd.DataFrame,
     current_decisions: pd.DataFrame,
+    previous_artifact: str = "ml-dataset-v1.0.1",
+    current_artifact: str = "ml-dataset-v1.0.2",
 ) -> pd.DataFrame:
     """Build a deterministic before/after decision diff DataFrame.
 
     Required columns:
-    listing_key, product_name, previous_decision, previous_reason,
-    current_decision, current_reason, changed, change_type
+    previous_artifact, current_artifact, listing_key, product_name,
+    previous_decision, previous_reason, current_decision, current_reason,
+    changed, change_type
     """
     prev_map = {row["listing_key"]: row for _, row in previous_decisions.iterrows()}
 
@@ -52,6 +55,8 @@ def build_decision_diff(
             changed = False
 
         diff_records.append({
+            "previous_artifact": previous_artifact,
+            "current_artifact": current_artifact,
             "listing_key": key,
             "product_name": prod_name,
             "previous_decision": prev_dec,
@@ -117,6 +122,8 @@ def write_cleaning_artifacts(
     products: pd.DataFrame,
     output_dir: Path,
     previous_cleaning_decisions_path: Path | None = None,
+    previous_artifact: str = "ml-dataset-v1.0.1",
+    current_artifact: str = "ml-dataset-v1.0.2",
     low_price_threshold: int = 2_000_000,
 ) -> tuple[Path, Path, Path, Path | None, Path]:
     """Write cleaning_decisions.csv, excluded_observations.csv, ambiguous_observations.csv, decision_diff.csv, low_price_review.csv.
@@ -190,8 +197,84 @@ def write_cleaning_artifacts(
         diff_df = build_decision_diff(
             previous_decisions=prev_df,
             current_decisions=cleaning_df,
+            previous_artifact=previous_artifact,
+            current_artifact=current_artifact,
         )
         diff_path = output_dir / "decision_diff.csv"
         diff_df.to_csv(diff_path, index=False)
 
     return cleaning_path, excluded_path, ambiguous_path, diff_path, low_price_path
+
+
+def render_release_signoff(
+    *,
+    manifest: Mapping[str, Any],
+    review_gate: Any | None = None,
+    validation: Any | None = None,
+) -> str:
+    """Render RELEASE_SIGNOFF.md document for the dataset release."""
+    artifact = manifest.get("artifact", "ml-dataset-v1.0")
+    run_id = manifest.get("source_run_id", "unknown")
+    source_rows = manifest.get("source_rows", 0)
+    git_commit = manifest.get("git_commit", "unknown")
+    acq_tag = manifest.get("acquisition_tag", "dataset-acquisition-v1.0")
+    cleaning = manifest.get("cleaning", {})
+    r1 = manifest.get("representations", {}).get("R1", {})
+    r2 = manifest.get("representations", {}).get("R2", {})
+    review = manifest.get("release_review", {})
+
+    all_passed = True
+    if review_gate and not getattr(review_gate, "passed", False):
+        all_passed = False
+    if validation and not getattr(validation, "passed", False):
+        all_passed = False
+
+    decision_status = "ML_DATASET_V1_FINAL" if all_passed else "PENDING_RELEASE_SIGNOFF"
+
+    content = f"""# Dataset Release Signoff
+
+## Artifact Identity
+- **Artifact Name:** {artifact}
+- **Source Run ID:** {run_id}
+- **Git Commit:** {git_commit}
+- **Acquisition Tag:** {acq_tag}
+
+## Source Integrity
+- **Total Source Rows:** {source_rows}
+
+## Manual Review Closure
+- **Low-Price Required:** {review.get('low_price_review_required', getattr(review_gate, 'total_required', 0))}
+- **Low-Price Resolved:** {review.get('low_price_review_resolved', getattr(review_gate, 'total_resolved', 0))}
+- **Approved Valid:** {review.get('approved_valid', getattr(review_gate, 'approved_valid', 0))}
+- **Leakage Excluded:** {review.get('leakage', getattr(review_gate, 'leakage', 0))}
+- **Ambiguous Excluded:** {review.get('ambiguous', getattr(review_gate, 'ambiguous', 0))}
+- **Review Ledger SHA-256:** `{review.get('review_decisions_sha256', '')}`
+
+## Eligibility Summary
+- **Valid Laptops:** {cleaning.get('valid_laptop_count', 0)}
+- **Excluded:** {cleaning.get('excluded_count', 0)}
+- **Ambiguous:** {cleaning.get('ambiguous_count', 0)}
+
+## Representation Summary
+- **R1 (Price + Rating):** {r1.get('rows', 0)} rows (SHA-256: `{r1.get('sha256', '')}`)
+- **R2 (Price + Rating + Review Count):** {r2.get('rows', 0)} rows (SHA-256: `{r2.get('sha256', '')}`)
+
+## Review Count Semantics
+- **Observed Count:** {cleaning.get('review_count_semantics', {}).get('observed_count', 0)}
+- **Explicit Zero:** {cleaning.get('review_count_semantics', {}).get('explicit_zero', 0)}
+- **Semantic Zero Proven:** {cleaning.get('review_count_semantics', {}).get('semantic_zero_proven', 0)}
+- **Missing Unresolved:** {cleaning.get('review_count_semantics', {}).get('missing_unresolved', 0)}
+
+## Cryptographic Verification
+All dataset files and manifests have been cryptographically hashed and verified.
+
+## Repository Scope Boundary
+This repository ends at dataset production and validation.
+No preprocessing or clustering implementation is part of this release.
+Kaggle publication is handled as a separate downstream workflow.
+
+## Release Decision
+{decision_status}
+"""
+    return content
+

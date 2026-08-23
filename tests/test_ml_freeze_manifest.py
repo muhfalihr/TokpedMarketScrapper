@@ -82,3 +82,47 @@ def test_manifest_records_provenance(sample_manifest):
     assert sample_manifest["source_run_id"] == "run-123"
     assert sample_manifest["git_commit"] == "abcdef1234567890"
     assert sample_manifest["acquisition_tag"] == "dataset-acquisition-v1.0"
+
+
+def test_manifest_hashes_low_price_review_decisions(tmp_path):
+    from laptop_market_scraper.ml_freeze.review_gate import LowPriceReviewGateResult
+
+    review_file = tmp_path / "low_price_review_decisions.csv"
+    review_file.write_text("listing_key,review_status,review_note\nk1,APPROVED_VALID,Note\n")
+
+    gate = LowPriceReviewGateResult(
+        total_required=1,
+        total_resolved=1,
+        approved_valid=1,
+        leakage=0,
+        ambiguous=0,
+        missing_listing_keys=(),
+        unexpected_listing_keys=(),
+        passed=True,
+    )
+
+    r1 = pd.DataFrame([{"listing_key": "k1", "price": 10_000_000, "rating": 4.5}])
+    r2 = pd.DataFrame([{"listing_key": "k1", "price": 10_000_000, "rating": 4.5, "review_count": 10}])
+    matrices = FrozenMatrices(r1=r1, r2=r2)
+    elig = EligibilityAssessment(listing_key="k1", decision=EligibilityDecision.VALID_LAPTOP, reason=EligibilityReason.VALID_LAPTOP)
+    res = ReviewCountResolution(listing_key="k1", original_value=10, resolved_value=10, semantic_status=ReviewCountSemanticStatus.OBSERVED_COUNT)
+    decision = build_cleaning_decision(row={"listing_key": "k1", "price": 10_000_000, "rating": 4.5}, eligibility=elig, review_resolution=res)
+
+    manifest = build_ml_dataset_manifest(
+        run_id="run-123",
+        config=_CONFIG,
+        matrices=matrices,
+        decisions=[decision],
+        source_paths={},
+        artifact_paths={},
+        git_commit="abcdef",
+        acquisition_tag="tag",
+        review_gate=gate,
+        review_decisions_path=review_file,
+    )
+
+    assert "release_review" in manifest
+    assert manifest["release_review"]["low_price_review_required"] == 1
+    assert manifest["release_review"]["low_price_review_resolved"] == 1
+    assert len(manifest["release_review"]["review_decisions_sha256"]) == 64
+

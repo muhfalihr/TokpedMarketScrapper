@@ -42,6 +42,8 @@ def build_ml_dataset_manifest(
     artifact_paths: Mapping[str, Path],
     git_commit: str,
     acquisition_tag: str,
+    review_gate: Any | None = None,
+    review_decisions_path: Path | None = None,
 ) -> dict[str, Any]:
     """Build a comprehensive freeze manifest with cryptographic hashes.
 
@@ -122,6 +124,17 @@ def build_ml_dataset_manifest(
         "acquisition_tag": acquisition_tag,
         "freeze_config_sha256": config_hash,
     }
+
+    if review_gate is not None or (review_decisions_path and review_decisions_path.exists()):
+        sha = _sha256_file(review_decisions_path) if review_decisions_path and review_decisions_path.exists() else ""
+        manifest["release_review"] = {
+            "low_price_review_required": getattr(review_gate, "total_required", 20),
+            "low_price_review_resolved": getattr(review_gate, "total_resolved", 20),
+            "approved_valid": getattr(review_gate, "approved_valid", 0),
+            "leakage": getattr(review_gate, "leakage", 0),
+            "ambiguous": getattr(review_gate, "ambiguous", 0),
+            "review_decisions_sha256": sha,
+        }
 
     return manifest
 

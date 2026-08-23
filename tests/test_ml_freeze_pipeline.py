@@ -168,3 +168,24 @@ def test_finalization_does_not_change_representation_contracts():
     assert config.representations["R1"].features == ("price", "rating")
     assert config.representations["R2"].features == ("price", "rating", "review_count")
 
+
+def test_v1_0_1_to_v1_0_2_diff_has_correct_net_exclusion_change():
+    from laptop_market_scraper.ml_freeze.render import build_decision_diff
+
+    baseline_v1_0_1_df = pd.read_csv("tests/fixtures/ml_freeze/baseline_v1_0_1_decisions.csv")
+    current_v1_0_2_df = pd.read_csv("data/ml/smoke-250/ml-dataset-v1.0.2/cleaning_decisions.csv")
+
+    diff = build_decision_diff(
+        previous_decisions=baseline_v1_0_1_df,
+        current_decisions=current_v1_0_2_df,
+        previous_artifact="ml-dataset-v1.0.1",
+        current_artifact="ml-dataset-v1.0.2",
+    )
+
+    counts = diff["change_type"].value_counts()
+    valid_to_exclude = int(counts.get("VALID_TO_EXCLUDE", 0))
+    exclude_to_valid = int(counts.get("EXCLUDE_TO_VALID", 0))
+
+    assert valid_to_exclude - exclude_to_valid == 41
+
+

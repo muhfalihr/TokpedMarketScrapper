@@ -446,14 +446,30 @@ def freeze_ml_dataset_cmd(
     output_dir: Path | None = typer.Option(
         None, "--output-dir", help="Base output directory"
     ),
+    review_decisions: Path | None = typer.Option(
+        None, "--review-decisions", help="Path to manual low-price review decisions CSV"
+    ),
+    baseline_decisions: Path | None = typer.Option(
+        None, "--baseline-decisions", help="Path to immediate predecessor cleaning decisions CSV"
+    ),
+    baseline_artifact: str = typer.Option(
+        "ml-dataset-v1.0.1", "--baseline-artifact", help="Immediate predecessor artifact name"
+    ),
+    artifact_version: str | None = typer.Option(
+        None, "--artifact-version", help="Override artifact release version name"
+    ),
     strict: bool = typer.Option(
-        False, "--strict", help="Fail on validation warnings/errors"
+        False, "--strict", help="Fail on validation warnings/errors or unreviewed items"
     ),
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Run preview without finalizing artifacts"
     ),
 ) -> None:
     """Freeze audited Tokopedia dataset into immutable ML datasets."""
+    if strict and (review_decisions is None or not review_decisions.exists()):
+        typer.echo("Error: --strict mode requires an existing --review-decisions file.", err=True)
+        raise typer.Exit(code=1)
+
     # Resolve default paths
     db_path = Path(f"data/interim/{run_id}/crawl.sqlite3")
     if not db_path.exists():
@@ -486,6 +502,11 @@ def freeze_ml_dataset_cmd(
             extreme_review_path=extreme_csv,
             missingness_review_path=missingness_csv,
             output_dir=base_output,
+            review_decisions_path=review_decisions,
+            baseline_decisions_path=baseline_decisions,
+            baseline_artifact=baseline_artifact,
+            artifact_version=artifact_version,
+            strict=strict,
             dry_run=dry_run,
         )
 
