@@ -58,3 +58,19 @@ def load_ml_readiness_config(path: Path | str = "config/ml_readiness.yaml") -> M
         data = yaml.safe_load(f) or {}
 
     return MLReadinessConfig.model_validate(data)
+
+
+class IntegrityResult(BaseModel):
+    normalized_rows: int
+    raw_rows: int
+    unique_normalized_keys: int
+    unique_raw_keys: int
+    duplicate_normalized_keys: tuple[str, ...]
+    orphan_normalized_records: int
+    orphan_raw_records: int
+    missing_required_columns: tuple[str, ...]
+    invalid_price_keys: tuple[str, ...]
+    invalid_rating_keys: tuple[str, ...]
+    invalid_review_count_keys: tuple[str, ...]
+    passed: bool
+
