@@ -181,3 +181,31 @@ def test_validator_rejects_non_unique_listing_keys():
 
     assert result.passed is False
     assert any("not unique" in err.lower() for err in result.errors)
+
+
+def test_strict_finalization_fails_when_low_price_review_is_incomplete():
+    from laptop_market_scraper.ml_freeze.review_gate import LowPriceReviewGateResult
+
+    source_products, matrices, decisions = _setup_valid_fixture()
+    gate = LowPriceReviewGateResult(
+        total_required=20,
+        total_resolved=19,
+        approved_valid=19,
+        leakage=0,
+        ambiguous=0,
+        missing_listing_keys=("missing-key",),
+        unexpected_listing_keys=(),
+        passed=False,
+    )
+
+    result = validate_frozen_matrices(
+        source_products=source_products,
+        matrices=matrices,
+        decisions=decisions,
+        low_price_review_gate=gate,
+        require_release_review=True,
+    )
+
+    assert result.passed is False
+    assert any("manual review" in message.lower() for message in result.errors)
+

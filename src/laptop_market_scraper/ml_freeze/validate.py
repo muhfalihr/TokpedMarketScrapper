@@ -13,6 +13,7 @@ from pydantic import BaseModel
 
 from laptop_market_scraper.ml_freeze.matrices import FrozenMatrices
 from laptop_market_scraper.ml_freeze.models import CleaningDecision, EligibilityDecision
+from laptop_market_scraper.ml_freeze.review_gate import LowPriceReviewGateResult
 
 
 class FreezeValidationResult(BaseModel):
@@ -26,6 +27,8 @@ def validate_frozen_matrices(
     source_products: pd.DataFrame,
     matrices: FrozenMatrices,
     decisions: Sequence[CleaningDecision],
+    low_price_review_gate: LowPriceReviewGateResult | None = None,
+    require_release_review: bool = False,
 ) -> FreezeValidationResult:
     """Validate frozen ML matrices against all required gates.
 
@@ -114,6 +117,19 @@ def validate_frozen_matrices(
             errors.append(f"R1 exclusion without reason: {d.listing_key}")
         if not d.include_r2 and not d.exclusion_reasons_r2:
             errors.append(f"R2 exclusion without reason: {d.listing_key}")
+
+    # --- Manual review gate check ---
+    if require_release_review:
+        if low_price_review_gate is None:
+            errors.append("Manual review gate required for strict release, but low_price_review_gate is None")
+        elif not low_price_review_gate.passed:
+            errors.append(
+                f"Manual review gate failed or incomplete: {low_price_review_gate.total_resolved}/{low_price_review_gate.total_required} resolved"
+            )
+    elif low_price_review_gate is not None and not low_price_review_gate.passed:
+        warnings.append(
+            f"Manual review gate incomplete: {low_price_review_gate.total_resolved}/{low_price_review_gate.total_required} resolved"
+        )
 
     return FreezeValidationResult(
         passed=len(errors) == 0,
