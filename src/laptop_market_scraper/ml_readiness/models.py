@@ -1,0 +1,60 @@
+from pathlib import Path
+from typing import Self
+
+import yaml
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+REQUIRED_FEATURES: tuple[str, ...] = ("price", "rating", "review_count")
+
+
+class RepresentationConfig(BaseModel):
+    id: str
+    description: str
+    features: list[str]
+
+
+class ExtremesConfig(BaseModel):
+    price_lower_quantile: float = Field(..., gt=0.0, lt=1.0)
+    price_upper_quantile: float = Field(..., gt=0.0, lt=1.0)
+    iqr_multiplier: float = Field(..., gt=0.0)
+    robust_z_threshold: float = Field(..., gt=0.0)
+    sample_limit: int = Field(default=20, gt=0)
+
+    @model_validator(mode="after")
+    def validate_quantile_range(self) -> Self:
+        if self.price_lower_quantile >= self.price_upper_quantile:
+            raise ValueError(
+                f"price_lower_quantile ({self.price_lower_quantile}) must be strictly less than "
+                f"price_upper_quantile ({self.price_upper_quantile})"
+            )
+        return self
+
+
+class AssociationConfig(BaseModel):
+    spearman_redundancy_threshold: float = Field(..., ge=0.0, le=1.0)
+
+
+class MLReadinessConfig(BaseModel):
+    features: list[str]
+    representations: dict[str, RepresentationConfig]
+    extremes: ExtremesConfig
+    association: AssociationConfig
+
+    @field_validator("features")
+    @classmethod
+    def validate_required_features(cls, features: list[str]) -> list[str]:
+        missing = set(REQUIRED_FEATURES) - set(features)
+        if missing:
+            raise ValueError(f"features missing required entries: {sorted(missing)}")
+        return features
+
+
+def load_ml_readiness_config(path: Path | str = "config/ml_readiness.yaml") -> MLReadinessConfig:
+    file_path = Path(path)
+    if not file_path.exists():
+        raise FileNotFoundError(f"Configuration file not found at: {file_path}")
+
+    with open(file_path, "r", encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+
+    return MLReadinessConfig.model_validate(data)

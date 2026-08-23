@@ -1,0 +1,29 @@
+features:
+  - price
+  - rating
+  - review_count
+
+representations:
+  R1:
+    id: R1
+    description: "Price + Rating (Highest Coverage)"
+    features:
+      - price
+      - rating
+  R2:
+    id: R2
+    description: "Price + Rating + Review Count (Full Engagement Context)"
+    features:
+      - price
+      - rating
+      - review_count
+
+extremes:
+  price_lower_quantile: 0.01
+  price_upper_quantile: 0.99
+  iqr_multiplier: 1.5
+  robust_z_threshold: 3.5
+  sample_limit: 20
+
+association:
+  spearman_redundancy_threshold: 0.85
