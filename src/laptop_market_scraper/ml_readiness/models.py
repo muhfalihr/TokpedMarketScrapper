@@ -74,3 +74,39 @@ class IntegrityResult(BaseModel):
     invalid_review_count_keys: tuple[str, ...]
     passed: bool
 
+
+from enum import Enum
+
+
+class MissingSemanticStatus(str, Enum):
+    SUPPORTED = "SUPPORTED"
+    LIKELY = "LIKELY"
+    AMBIGUOUS = "AMBIGUOUS"
+    UNRESOLVED = "UNRESOLVED"
+
+
+class MissingnessCase(BaseModel):
+    listing_key: str
+    product_name: str | None = None
+    product_url: str | None = None
+    rating: float | None = None
+    review_count: float | None = None
+    rating_missing: bool
+    review_count_missing: bool
+    semantic_status: MissingSemanticStatus
+    evidence: tuple[str, ...]
+
+
+class MissingnessResult(BaseModel):
+    total_rows: int
+    complete_rating_and_reviews: int
+    missing_rating_only: int
+    missing_reviews_only: int
+    missing_both: int
+    rating_missing_percent: float
+    review_missing_percent: float
+    median_price_when_review_present: float | None = None
+    median_price_when_review_missing: float | None = None
+    cases: tuple[MissingnessCase, ...]
+
+
