@@ -11,16 +11,78 @@ from laptop_market_scraper.ml_freeze.models import CleaningDecision, Eligibility
 from laptop_market_scraper.ml_freeze.review_semantics import ReviewCountResolution
 
 
+def build_decision_diff(
+    *,
+    previous_decisions: pd.DataFrame,
+    current_decisions: pd.DataFrame,
+) -> pd.DataFrame:
+    """Build a deterministic before/after decision diff DataFrame.
+
+    Required columns:
+    listing_key, product_name, previous_decision, previous_reason,
+    current_decision, current_reason, changed, change_type
+    """
+    prev_map = {row["listing_key"]: row for _, row in previous_decisions.iterrows()}
+
+    diff_records = []
+    for _, curr in current_decisions.iterrows():
+        key = curr["listing_key"]
+        prev = prev_map.get(key, {})
+
+        prev_dec = str(prev.get("eligibility_decision", "UNKNOWN"))
+        prev_rea = str(prev.get("eligibility_reason", "UNKNOWN"))
+        curr_dec = str(curr.get("eligibility_decision", ""))
+        curr_rea = str(curr.get("eligibility_reason", ""))
+        prod_name = str(curr.get("product_name", prev.get("product_name", "")))
+
+        if prev_dec == "EXCLUDE" and curr_dec == "VALID_LAPTOP":
+            change_type = "EXCLUDE_TO_VALID"
+            changed = True
+        elif prev_dec == "VALID_LAPTOP" and curr_dec == "EXCLUDE":
+            change_type = "VALID_TO_EXCLUDE"
+            changed = True
+        elif prev_dec != curr_dec:
+            change_type = "DECISION_CHANGED"
+            changed = True
+        elif prev_rea != curr_rea:
+            change_type = "REASON_CHANGED"
+            changed = True
+        else:
+            change_type = "UNCHANGED"
+            changed = False
+
+        diff_records.append({
+            "listing_key": key,
+            "product_name": prod_name,
+            "previous_decision": prev_dec,
+            "previous_reason": prev_rea,
+            "current_decision": curr_dec,
+            "current_reason": curr_rea,
+            "changed": changed,
+            "change_type": change_type,
+        })
+
+    diff_df = pd.DataFrame(diff_records)
+    if not diff_df.empty:
+        diff_df = diff_df.sort_values(
+            by=["changed", "change_type", "listing_key"],
+            ascending=[False, True, True],
+        ).reset_index(drop=True)
+
+    return diff_df
+
+
 def write_cleaning_artifacts(
     *,
     decisions: Sequence[CleaningDecision],
     review_resolutions: dict[str, ReviewCountResolution],
     products: pd.DataFrame,
     output_dir: Path,
-) -> tuple[Path, Path, Path]:
-    """Write cleaning_decisions.csv, excluded_observations.csv, ambiguous_observations.csv.
+    previous_cleaning_decisions_path: Path | None = None,
+) -> tuple[Path, Path, Path, Path | None]:
+    """Write cleaning_decisions.csv, excluded_observations.csv, ambiguous_observations.csv, and optional decision_diff.csv.
 
-    Returns paths to the three CSV files.
+    Returns paths to the written CSV files.
     CSV row order: listing_key ASC.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -69,4 +131,19 @@ def write_cleaning_artifacts(
     ambiguous_path = output_dir / "ambiguous_observations.csv"
     ambiguous_df.to_csv(ambiguous_path, index=False)
 
-    return cleaning_path, excluded_path, ambiguous_path
+    # Optional decision diff
+    diff_path: Path | None = None
+    if (
+        previous_cleaning_decisions_path
+        and previous_cleaning_decisions_path.exists()
+        and previous_cleaning_decisions_path.stat().st_size > 0
+    ):
+        prev_df = pd.read_csv(previous_cleaning_decisions_path)
+        diff_df = build_decision_diff(
+            previous_decisions=prev_df,
+            current_decisions=cleaning_df,
+        )
+        diff_path = output_dir / "decision_diff.csv"
+        diff_df.to_csv(diff_path, index=False)
+
+    return cleaning_path, excluded_path, ambiguous_path, diff_path

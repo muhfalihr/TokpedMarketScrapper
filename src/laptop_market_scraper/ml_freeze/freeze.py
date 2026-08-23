@@ -201,12 +201,18 @@ def freeze_ml_dataset(
     pq.write_table(pa.Table.from_pandas(matrices.r1), r1_path)
     pq.write_table(pa.Table.from_pandas(matrices.r2), r2_path)
 
+    # Check for baseline cleaning decisions for before/after diff
+    baseline_dec_path = output_dir / "baseline_cleaning_decisions.csv"
+    if not baseline_dec_path.exists():
+        baseline_dec_path = output_dir / "ml-dataset-v1.0" / "cleaning_decisions.csv"
+
     # Write cleaning artifacts
-    cleaning_path, excluded_path, ambiguous_path = write_cleaning_artifacts(
+    cleaning_path, excluded_path, ambiguous_path, _diff_path = write_cleaning_artifacts(
         decisions=decisions,
         review_resolutions=review_resolutions,
         products=data.products,
         output_dir=staging_dir,
+        previous_cleaning_decisions_path=baseline_dec_path if baseline_dec_path.exists() else None,
     )
 
     # Build and write manifest

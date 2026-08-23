@@ -78,7 +78,7 @@ def test_manifest_locks_feature_contract(sample_manifest):
 
 
 def test_manifest_records_provenance(sample_manifest):
-    assert sample_manifest["artifact"] == "ml-dataset-v1.0"
+    assert sample_manifest["artifact"] == "ml-dataset-v1.0.1"
     assert sample_manifest["source_run_id"] == "run-123"
     assert sample_manifest["git_commit"] == "abcdef1234567890"
     assert sample_manifest["acquisition_tag"] == "dataset-acquisition-v1.0"
