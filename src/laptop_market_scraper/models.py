@@ -120,3 +120,15 @@ class SearchPage(BaseModel):
     products: tuple[SearchProduct, ...] = ()
     total_data: int | None = None
 
+
+class FeatureProvenance(BaseModel):
+    crawl_run_id: str
+    listing_key: str
+    feature_name: str
+    source_layer: Literal["graphql_search", "product_detail_html", "derived", "unknown"]
+    source_field: str
+    value_kind: str = "numeric"
+    raw_value_json: str | None = None
+    observed_at: str
+
+

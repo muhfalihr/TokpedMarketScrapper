@@ -10,10 +10,11 @@ import json
 import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
-from laptop_market_scraper.models import NormalizedProduct, RawProduct
+from laptop_market_scraper.models import FeatureProvenance, NormalizedProduct, RawProduct
 from laptop_market_scraper.normalization import (
     normalize_count,
     normalize_idr,
@@ -59,6 +60,18 @@ CREATE TABLE IF NOT EXISTS product_discoveries (
         source_query,
         search_page
     )
+);
+
+CREATE TABLE IF NOT EXISTS feature_provenance (
+    crawl_run_id TEXT NOT NULL,
+    listing_key TEXT NOT NULL,
+    feature_name TEXT NOT NULL,
+    source_layer TEXT NOT NULL,
+    source_field TEXT NOT NULL,
+    value_kind TEXT NOT NULL DEFAULT 'numeric',
+    raw_value_json TEXT,
+    observed_at TEXT NOT NULL,
+    PRIMARY KEY (crawl_run_id, listing_key, feature_name)
 );
 """
 
@@ -404,9 +417,105 @@ class SQLiteStore:
         ]
         return [dict(zip(cols, r)) for r in rows]
 
+    def save_feature_provenance(
+        self,
+        run_id: str,
+        listing_key: str,
+        feature_name: str,
+        source_layer: str,
+        source_field: str,
+        raw_value: Any = None,
+        value_kind: str = "numeric",
+        observed_at: str | None = None,
+    ) -> None:
+        """Save or replace a field-level feature provenance record."""
+        if observed_at is None:
+            observed_at = datetime.now(UTC).isoformat()
+
+        raw_value_json = json.dumps(raw_value) if raw_value is not None else None
+
+        self._conn.execute(
+            """\
+            INSERT OR REPLACE INTO feature_provenance (
+                crawl_run_id,
+                listing_key,
+                feature_name,
+                source_layer,
+                source_field,
+                value_kind,
+                raw_value_json,
+                observed_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                run_id,
+                listing_key,
+                feature_name,
+                source_layer,
+                source_field,
+                value_kind,
+                raw_value_json,
+                observed_at,
+            ),
+        )
+        self._conn.commit()
+
+    def get_feature_provenance(
+        self, run_id: str, listing_key: str, feature_name: str
+    ) -> FeatureProvenance | None:
+        """Fetch single provenance record."""
+        row = self._conn.execute(
+            """\
+            SELECT crawl_run_id, listing_key, feature_name, source_layer, source_field, value_kind, raw_value_json, observed_at
+            FROM feature_provenance
+            WHERE crawl_run_id = ? AND listing_key = ? AND feature_name = ?
+            """,
+            (run_id, listing_key, feature_name),
+        ).fetchone()
+
+        if not row:
+            return None
+
+        return FeatureProvenance(
+            crawl_run_id=row[0],
+            listing_key=row[1],
+            feature_name=row[2],
+            source_layer=row[3],
+            source_field=row[4],
+            value_kind=row[5],
+            raw_value_json=row[6],
+            observed_at=row[7],
+        )
+
+    def get_all_feature_provenance(self, run_id: str) -> list[FeatureProvenance]:
+        """Fetch all provenance records for a run."""
+        rows = self._conn.execute(
+            """\
+            SELECT crawl_run_id, listing_key, feature_name, source_layer, source_field, value_kind, raw_value_json, observed_at
+            FROM feature_provenance
+            WHERE crawl_run_id = ?
+            """,
+            (run_id,),
+        ).fetchall()
+
+        return [
+            FeatureProvenance(
+                crawl_run_id=row[0],
+                listing_key=row[1],
+                feature_name=row[2],
+                source_layer=row[3],
+                source_field=row[4],
+                value_kind=row[5],
+                raw_value_json=row[6],
+                observed_at=row[7],
+            )
+            for row in rows
+        ]
+
     def close(self) -> None:
         """Close the database connection."""
         self._conn.close()
+
 
 
 MarketStorage = SQLiteStore
