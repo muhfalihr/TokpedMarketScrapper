@@ -19,8 +19,8 @@ from laptop_market_scraper.ml_freeze.models import (
 def test_freeze_config_locks_r1_and_r2():
     config = load_ml_freeze_config(Path("config/ml_freeze.yaml"))
 
-    assert config.version == "1.0.2"
-    assert config.artifact_name == "ml-dataset-v1.0.2"
+    assert config.version == "1.0.3"
+    assert config.artifact_name == "ml-dataset-v1.0.3"
     assert "R1" in config.representations
     assert "R2" in config.representations
     assert config.representations["R1"].features == ("price", "rating")
@@ -31,8 +31,8 @@ def test_freeze_config_locks_r1_and_r2():
 
 def test_load_actual_yaml_config():
     config = load_ml_freeze_config("config/ml_freeze.yaml")
-    assert config.version == "1.0.2"
-    assert config.artifact_name == "ml-dataset-v1.0.2"
+    assert config.version == "1.0.3"
+    assert config.artifact_name == "ml-dataset-v1.0.3"
     assert "R1" in config.representations
     assert "R2" in config.representations
     assert config.eligibility.allow_ambiguous_in_ml is False

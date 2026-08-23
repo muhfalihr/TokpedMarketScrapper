@@ -1,11 +1,12 @@
 """Tests for low-price manual review contracts and gate validation."""
 
 from pathlib import Path
+
 import pandas as pd
 import pytest
 from pydantic import ValidationError
 
-from laptop_market_scraper.ml_freeze.models import ManualReviewStatus, LowPriceReviewDecision
+from laptop_market_scraper.ml_freeze.models import LowPriceReviewDecision, ManualReviewStatus
 from laptop_market_scraper.ml_freeze.review_gate import (
     load_low_price_review_decisions,
     validate_low_price_review_gate,

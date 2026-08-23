@@ -1,7 +1,6 @@
 """Tests for rendering decision diffs, READMEs, and RELEASE_SIGNOFF.md."""
 
 import pandas as pd
-import pytest
 
 from laptop_market_scraper.ml_freeze.render import (
     build_decision_diff,

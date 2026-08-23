@@ -1,6 +1,6 @@
 freeze:
-  version: "1.0.2"
-  artifact_name: "ml-dataset-v1.0.2"
+  version: "1.0.3"
+  artifact_name: "ml-dataset-v1.0.3"
 
   representations:
     R1:
