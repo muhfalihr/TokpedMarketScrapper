@@ -1,3 +1,7 @@
+from laptop_market_scraper.ml_readiness.loader import (
+    ReadinessDataset,
+    load_readiness_dataset,
+)
 from laptop_market_scraper.ml_readiness.models import (
     AssociationConfig,
     ExtremesConfig,
@@ -11,5 +15,7 @@ __all__ = [
     "ExtremesConfig",
     "MLReadinessConfig",
     "RepresentationConfig",
+    "ReadinessDataset",
     "load_ml_readiness_config",
+    "load_readiness_dataset",
 ]

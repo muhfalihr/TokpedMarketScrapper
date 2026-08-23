@@ -512,9 +512,54 @@ class SQLiteStore:
             for row in rows
         ]
 
+    def read_products_for_run(self, run_id: str | None = None) -> list[dict[str, Any]]:
+        """Retrieve products for a run (or all if run_id is None) as a list of dicts."""
+        if run_id:
+            rows = self._conn.execute(
+                "SELECT payload_json FROM products WHERE crawl_run_id = ?", (run_id,)
+            ).fetchall()
+        else:
+            rows = self._conn.execute("SELECT payload_json FROM products").fetchall()
+        return [json.loads(row[0]) for row in rows]
+
+    def read_feature_provenance_for_run(self, run_id: str | None = None) -> list[dict[str, Any]]:
+        """Retrieve feature provenance for a run (or all if run_id is None) as a list of dicts."""
+        cols = [
+            "crawl_run_id",
+            "listing_key",
+            "feature_name",
+            "source_layer",
+            "source_field",
+            "value_kind",
+            "raw_value_json",
+            "observed_at",
+        ]
+        if run_id:
+            rows = self._conn.execute(
+                """\
+                SELECT crawl_run_id, listing_key, feature_name, source_layer, source_field, value_kind, raw_value_json, observed_at
+                FROM feature_provenance
+                WHERE crawl_run_id = ?
+                """,
+                (run_id,),
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                """\
+                SELECT crawl_run_id, listing_key, feature_name, source_layer, source_field, value_kind, raw_value_json, observed_at
+                FROM feature_provenance
+                """
+            ).fetchall()
+        return [dict(zip(cols, row)) for row in rows]
+
+    def read_discoveries_for_run(self, run_id: str | None = None) -> list[dict[str, Any]]:
+        """Retrieve discovery records for a run (or all if run_id is None) as a list of dicts."""
+        return self.get_discoveries(run_id=run_id)
+
     def close(self) -> None:
         """Close the database connection."""
         self._conn.close()
+
 
 
 
