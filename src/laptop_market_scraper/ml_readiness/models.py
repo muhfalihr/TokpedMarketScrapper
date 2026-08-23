@@ -173,3 +173,14 @@ class ExtremePriceObservation(BaseModel):
     price_source: str | None = None
     review_status: str = "UNREVIEWED"
     review_note: str = ""
+
+
+class AssociationResult(BaseModel):
+    feature_a: str
+    feature_b: str
+    pairwise_n: int
+    spearman_rho: float | None = None
+    pearson_r: float | None = None
+    strength: str | None = None
+    redundancy_review: bool
+

@@ -1,3 +1,7 @@
+from laptop_market_scraper.ml_readiness.association import (
+    analyze_associations,
+    audit_associations,
+)
 from laptop_market_scraper.ml_readiness.complete_cases import (
     analyze_all_representations,
     analyze_complete_cases,
@@ -23,6 +27,7 @@ from laptop_market_scraper.ml_readiness.missingness import (
 )
 from laptop_market_scraper.ml_readiness.models import (
     AssociationConfig,
+    AssociationResult,
     CompleteCaseResult,
     DistributionResult,
     ExtremePriceObservation,
@@ -39,6 +44,7 @@ from laptop_market_scraper.ml_readiness.models import (
 
 __all__ = [
     "AssociationConfig",
+    "AssociationResult",
     "CompleteCaseResult",
     "DistributionResult",
     "ExtremePriceObservation",
@@ -53,9 +59,11 @@ __all__ = [
     "TransformationSignal",
     "analyze_all_distributions",
     "analyze_all_representations",
+    "analyze_associations",
     "analyze_complete_cases",
     "analyze_distribution",
     "analyze_missingness",
+    "audit_associations",
     "audit_complete_cases",
     "audit_dataset_integrity",
     "audit_missingness",
@@ -63,3 +71,4 @@ __all__ = [
     "load_ml_readiness_config",
     "load_readiness_dataset",
 ]
+
