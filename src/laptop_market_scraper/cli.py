@@ -14,6 +14,11 @@ from laptop_market_scraper.audit import (
     export_feature_audit,
 )
 from laptop_market_scraper.manifest import generate_manifest, write_manifest
+from laptop_market_scraper.ml_readiness import (
+    load_ml_readiness_config,
+    run_ml_readiness_audit,
+    write_ml_readiness_artifacts,
+)
 from laptop_market_scraper.parsers.listing import parse_listing_page
 from laptop_market_scraper.parsers.state import (
     FLIGHT_MARKER,
@@ -313,6 +318,87 @@ def audit_features_cmd(
         report.integrity.missing_raw_counterparts > 0
         or report.integrity.orphan_normalized_records > 0
     ):
+        raise typer.Exit(code=1)
+
+
+@app.command("audit-ml-readiness")
+def audit_ml_readiness_cmd(
+    run_id: str = typer.Option(..., "--run-id", help="Crawl run ID to audit"),
+    config_path: Path = typer.Option(
+        Path("config/ml_readiness.yaml"), "--config", help="ML readiness config YAML"
+    ),
+    output_dir: Path | None = typer.Option(
+        None, "--output-dir", help="Output directory for audit report artifacts"
+    ),
+    crawl_dir: Path = typer.Option(
+        Path("crawl_state"), "--crawl-dir", help="Directory containing crawl state and database"
+    ),
+    strict: bool = typer.Option(
+        False, "--strict", help="Return non-zero exit code if dataset integrity checks fail"
+    ),
+    sample_extremes: int | None = typer.Option(
+        None, "--sample-extremes", help="Override max extreme price cases to review"
+    ),
+) -> None:
+    """Execute EDA & ML dataset readiness audit on a crawl run."""
+    db_candidates = [
+        crawl_dir / run_id / "laptops.db",
+        crawl_dir / "laptops.db",
+        crawl_dir / run_id / "crawl.sqlite3",
+        Path("data/interim") / run_id / "crawl.sqlite3",
+    ]
+    db_path = next((p for p in db_candidates if p.is_file()), crawl_dir / run_id / "laptops.db")
+    store = SQLiteStore(db_path, data_dir=crawl_dir)
+
+    raw_candidates = [
+        crawl_dir / run_id,
+        crawl_dir / "raw" / run_id,
+        Path("data/raw") / run_id,
+        crawl_dir,
+    ]
+    raw_dir = next(
+        (d for d in raw_candidates if (d / "products.jsonl").is_file()),
+        next((d for d in raw_candidates if d.is_dir()), crawl_dir / run_id),
+    )
+
+    if output_dir is None:
+        output_dir = Path("reports") / run_id
+
+    config = load_ml_readiness_config(config_path)
+    write_kwargs = {}
+    if sample_extremes is not None:
+        config.extremes.sample_limit = sample_extremes
+        write_kwargs["maximum_extreme_cases"] = sample_extremes
+
+    report = run_ml_readiness_audit(
+        run_id=run_id,
+        store=store,
+        raw_jsonl_path=raw_dir,
+        config=config,
+    )
+    json_path, md_path, extreme_csv, missing_csv = write_ml_readiness_artifacts(
+        report,
+        output_dir=output_dir,
+        **write_kwargs,
+    )
+
+    typer.echo("ML Dataset Readiness Audit Completed\n")
+    typer.echo(f"Run: {run_id}")
+    typer.echo(f"Rows: {report.dataset_rows}\n")
+    typer.echo("Candidate representations:")
+    for rep_id, rep in report.representations.items():
+        feats_str = " + ".join(rep.required_features)
+        status_str = rep.status.value if hasattr(rep.status, "value") else str(rep.status)
+        typer.echo(f"  {rep_id} {feats_str}:")
+        typer.echo(f"    Complete: {rep.complete_rows} ({rep.retention_percent:.1f}%)")
+        typer.echo(f"    Status: {status_str}")
+
+    typer.echo(f"\nExtreme price observations: {len(report.extreme_prices)}")
+    typer.echo(f"Missingness review cases: {len(report.missingness.cases)}\n")
+    typer.echo("Report:")
+    typer.echo(f"{md_path}")
+
+    if strict and not report.integrity.passed:
         raise typer.Exit(code=1)
 
 
