@@ -3,6 +3,7 @@
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+
 from typer.testing import CliRunner
 
 from laptop_market_scraper.cli import app

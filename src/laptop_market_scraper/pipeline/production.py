@@ -1,5 +1,6 @@
 """Production pipeline orchestrator for Tokopedia Laptop Scraper."""
 
+import logging
 import random
 import string
 import subprocess
@@ -26,6 +27,8 @@ from laptop_market_scraper.pipeline.state import (
 from laptop_market_scraper.quality import export_quality_report, generate_quality_report
 from laptop_market_scraper.spiders.tokopedia_laptop import TokopediaLaptopSpider
 from laptop_market_scraper.storage import SQLiteStore
+
+logger = logging.getLogger(__name__)
 
 
 def _generate_run_id() -> str:
@@ -73,8 +76,7 @@ class ProductionPipeline(BaseModel):
                 configured_max_pages=prod_cfg.max_pages_total,
             )
             if not preflight_report.capacity_sufficient and preflight_report.warning:
-                import logging
-                logging.warning("Preflight Capacity Warning: %s", preflight_report.warning)
+                logger.warning("Preflight Capacity Warning: %s", preflight_report.warning)
 
             state.stage = PipelineStage.PREFLIGHT_COMPLETE
             state.updated_at = datetime.now(UTC).isoformat()

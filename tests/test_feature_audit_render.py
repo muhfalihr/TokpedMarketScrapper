@@ -3,6 +3,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
+
 from laptop_market_scraper.audit import (
     DatasetIntegrityReport,
     FeatureAuditReport,

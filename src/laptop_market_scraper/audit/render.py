@@ -19,7 +19,7 @@ def render_feature_audit_json(
     return out_path
 
 
-def _format_num(val: float | int | None) -> str:
+def _format_num(val: float | None) -> str:
     if val is None:
         return "N/A"
     return f"{val:.2f}"
