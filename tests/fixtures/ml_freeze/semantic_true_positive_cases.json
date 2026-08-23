@@ -1,0 +1,50 @@
+[
+  {
+    "case_id": "actual_dp",
+    "product_name": "DP Laptop Lenovo ThinkPad X1 Carbon",
+    "price": 500000,
+    "expected_reason": "DOWN_PAYMENT_OR_DEPOSIT"
+  },
+  {
+    "case_id": "down_payment",
+    "product_name": "Down Payment Macbook Pro M3",
+    "price": 1000000,
+    "expected_reason": "DOWN_PAYMENT_OR_DEPOSIT"
+  },
+  {
+    "case_id": "uang_muka",
+    "product_name": "Uang Muka Laptop Gaming ASUS ROG",
+    "price": 1000000,
+    "expected_reason": "DOWN_PAYMENT_OR_DEPOSIT"
+  },
+  {
+    "case_id": "keyboard_docking",
+    "product_name": "Keyboard Docking Lenovo Thinkpad Helix Ultrabook Gen2",
+    "price": 300000,
+    "expected_reason": "NON_LAPTOP_COMPONENT"
+  },
+  {
+    "case_id": "lcd_panel",
+    "product_name": "LCD LED HP Ultrabook 14-B HD",
+    "price": 700000,
+    "expected_reason": "NON_LAPTOP_COMPONENT"
+  },
+  {
+    "case_id": "laptop_shell",
+    "product_name": "Laptop Shell For Lenovo Thinkpad Helix Ultrabook",
+    "price": 400000,
+    "expected_reason": "NON_LAPTOP_COMPONENT"
+  },
+  {
+    "case_id": "sleevecase",
+    "product_name": "Acer Sleevecase Laptop Original",
+    "price": 99000,
+    "expected_reason": "NON_LAPTOP_ACCESSORY"
+  },
+  {
+    "case_id": "flex_cable",
+    "product_name": "Kabel Fleksibel LCD Acer Ultrabook S3-951",
+    "price": 150000,
+    "expected_reason": "NON_LAPTOP_COMPONENT"
+  }
+]

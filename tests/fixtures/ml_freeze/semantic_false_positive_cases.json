@@ -1,0 +1,50 @@
+[
+  {
+    "case_id": "ideapad_dp_false_match",
+    "product_name": "LAPTOP LENOVO IDEAPAD SLIM 5 14 OLED INTEL ULTRA 7 355 16GB 512GB W11+OHS+M365B 14 WUXGA BACKLIT 2Y PREM+2ADP",
+    "price": 41999000,
+    "expected_decision": "VALID_LAPTOP"
+  },
+  {
+    "case_id": "adp_asus",
+    "product_name": "[ RESMI + ADP ] Laptop Asus VivoBook Go 14 E1404FA AMD Ryzen 3 7320U RAM 8GB SSD 256GB",
+    "price": 8535500,
+    "expected_decision": "VALID_LAPTOP"
+  },
+  {
+    "case_id": "sku_dpesn",
+    "product_name": "Acer Aspire Lite Laptop NX.DPESN.001",
+    "price": 8000000,
+    "expected_decision": "VALID_LAPTOP"
+  },
+  {
+    "case_id": "seashell_color",
+    "product_name": "Lenovo Yoga 7 2-in-1 Laptop Seashell",
+    "price": 20000000,
+    "expected_decision": "VALID_LAPTOP"
+  },
+  {
+    "case_id": "backlit_keyboard",
+    "product_name": "Acer Nitro V 15 Laptop Gaming Keyboard Backlit",
+    "price": 16000000,
+    "expected_decision": "VALID_LAPTOP"
+  },
+  {
+    "case_id": "rgb_keyboard",
+    "product_name": "ASUS ROG Strix Gaming Laptop 4-Zone RGB Keyboard",
+    "price": 35000000,
+    "expected_decision": "VALID_LAPTOP"
+  },
+  {
+    "case_id": "touch_lcd_spec",
+    "product_name": "Laptop Acer Aspire GO Spin 14 Touch X360 LCD SSD",
+    "price": 12000000,
+    "expected_decision": "VALID_LAPTOP"
+  },
+  {
+    "case_id": "sleeve_bundle",
+    "product_name": "ASUS ExpertBook P5 Laptop + Sleeve",
+    "price": 18000000,
+    "expected_decision": "VALID_LAPTOP"
+  }
+]

@@ -126,3 +126,40 @@ def test_real_audit_examples_have_expected_semantic_decisions():
         result = _assess(title, price=price)
         assert result.decision.value == expected, f"Failed for '{title}'"
 
+
+def load_fixture_cases(name: str) -> list[dict]:
+    import json
+    from pathlib import Path
+
+    path = Path("tests/fixtures/ml_freeze") / name
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+@pytest.mark.parametrize(
+    "case",
+    load_fixture_cases("semantic_false_positive_cases.json"),
+    ids=lambda c: c["case_id"],
+)
+def test_semantic_false_positive_cases_must_be_valid_laptops(case):
+    result = _assess(case["product_name"], price=case.get("price", 10_000_000))
+    assert result.decision == EligibilityDecision.VALID_LAPTOP, (
+        f"Case '{case['case_id']}' failed: expected VALID_LAPTOP, got {result.decision} ({result.reason})"
+    )
+
+
+@pytest.mark.parametrize(
+    "case",
+    load_fixture_cases("semantic_true_positive_cases.json"),
+    ids=lambda c: c["case_id"],
+)
+def test_semantic_true_positive_cases_must_be_excluded(case):
+    result = _assess(case["product_name"], price=case.get("price", 500_000))
+    assert result.decision == EligibilityDecision.EXCLUDE, (
+        f"Case '{case['case_id']}' failed: expected EXCLUDE, got {result.decision}"
+    )
+    assert result.reason.value == case["expected_reason"], (
+        f"Case '{case['case_id']}' failed: expected reason {case['expected_reason']}, got {result.reason.value}"
+    )
+
+
