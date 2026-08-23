@@ -345,9 +345,49 @@ class SQLiteStore:
         df.to_csv(out, index=False)
         return out
 
+    def get_discoveries(self, run_id: str | None = None) -> list[dict]:
+        """Retrieve discovery records as a list of dicts."""
+        if run_id:
+            rows = self._conn.execute(
+                """\
+                SELECT crawl_run_id, listing_key, source_query, seed_kind, search_page,
+                       search_start, search_rows, search_rank, category_sc, sort_code,
+                       observed_total_data, discovered_at
+                FROM product_discoveries
+                WHERE crawl_run_id = ?
+                """,
+                (run_id,),
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                """\
+                SELECT crawl_run_id, listing_key, source_query, seed_kind, search_page,
+                       search_start, search_rows, search_rank, category_sc, sort_code,
+                       observed_total_data, discovered_at
+                FROM product_discoveries
+                """
+            ).fetchall()
+
+        cols = [
+            "crawl_run_id",
+            "listing_key",
+            "source_query",
+            "seed_kind",
+            "search_page",
+            "search_start",
+            "search_rows",
+            "search_rank",
+            "category_sc",
+            "sort_code",
+            "observed_total_data",
+            "discovered_at",
+        ]
+        return [dict(zip(cols, r)) for r in rows]
+
     def close(self) -> None:
         """Close the database connection."""
         self._conn.close()
 
 
 MarketStorage = SQLiteStore
+

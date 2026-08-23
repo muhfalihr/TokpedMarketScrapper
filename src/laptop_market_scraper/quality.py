@@ -1,12 +1,15 @@
 """Dataset quality report and reproducibility manifest generation."""
-import hashlib
+
+from collections import defaultdict
 import json
-import subprocess
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from laptop_market_scraper.eligibility import evaluate_laptop_eligibility, _extract_breadcrumb_and_name
+from laptop_market_scraper.manifest import write_manifest
 from laptop_market_scraper.storage import SQLiteStore
 
 
@@ -28,6 +31,144 @@ class QualityReport(BaseModel):
     invalid_eligibility_count: int
     research_ready: bool
 
+    search_pages_fetched: int = 0
+    search_results_seen: int = 0
+    eligible_laptop_count: int = 0
+    rejected_non_laptop_count: int = 0
+    eligibility_rate: float = 0.0
+    duplicate_discovery_count: int = 0
+    unique_listing_count: int = 0
+    eligibility_rate_by_query: dict[str, float] = Field(default_factory=dict)
+    accepted_count_by_query: dict[str, int] = Field(default_factory=dict)
+    rejected_count_by_query: dict[str, int] = Field(default_factory=dict)
+    accepted_count_by_breadcrumb: dict[str, int] = Field(default_factory=dict)
+    rejected_count_by_breadcrumb: dict[str, int] = Field(default_factory=dict)
+    observed_total_data_min: int | None = None
+    observed_total_data_max: int | None = None
+
+
+def generate_quality_report(
+    discoveries: list[dict | Any] | None = None,
+    store: SQLiteStore | None = None,
+    run_id: str | None = None,
+) -> dict[str, Any]:
+    """Aggregate search acquisition quality metrics across search discoveries."""
+    if discoveries is None:
+        discoveries = []
+        if store and hasattr(store, "get_discoveries"):
+            discoveries = store.get_discoveries(run_id=run_id)
+
+    pages_seen: set[tuple[str, int]] = set()
+    seen_listing_keys: set[str] = set()
+    observed_total_data_values: list[int] = []
+
+    eligible_laptop_count = 0
+    rejected_non_laptop_count = 0
+
+    accepted_count_by_query: dict[str, int] = defaultdict(int)
+    rejected_count_by_query: dict[str, int] = defaultdict(int)
+    accepted_count_by_breadcrumb: dict[str, int] = defaultdict(int)
+    rejected_count_by_breadcrumb: dict[str, int] = defaultdict(int)
+
+    for item in discoveries:
+        if isinstance(item, dict):
+            query = item.get("source_query") or item.get("query") or "unknown"
+            page = item.get("search_page") or item.get("page") or 1
+            total_data = item.get("observed_total_data") if "observed_total_data" in item else item.get("total_data")
+            listing_key = item.get("listing_key") or item.get("product_id") or item.get("url") or ""
+        else:
+            query = getattr(item, "source_query", getattr(item, "query", "unknown"))
+            page = getattr(item, "search_page", getattr(item, "page", 1))
+            total_data = getattr(item, "observed_total_data", getattr(item, "total_data", None))
+            listing_key = getattr(item, "listing_key", getattr(item, "product_id", getattr(item, "url", "")))
+
+        query = str(query)
+        try:
+            page = int(page)
+        except (ValueError, TypeError):
+            page = 1
+
+        pages_seen.add((query, page))
+
+        if total_data is not None:
+            try:
+                observed_total_data_values.append(int(total_data))
+            except (ValueError, TypeError):
+                pass
+
+        if listing_key:
+            seen_listing_keys.add(str(listing_key))
+
+        breadcrumb, _ = _extract_breadcrumb_and_name(item)
+
+        if isinstance(item, dict) and "accepted" in item:
+            accepted = bool(item["accepted"])
+        elif hasattr(item, "accepted") and isinstance(getattr(item, "accepted"), bool):
+            accepted = bool(getattr(item, "accepted"))
+        else:
+            accepted = evaluate_laptop_eligibility(item).accepted
+
+        if accepted:
+            eligible_laptop_count += 1
+            accepted_count_by_query[query] += 1
+            accepted_count_by_breadcrumb[breadcrumb] += 1
+        else:
+            rejected_non_laptop_count += 1
+            rejected_count_by_query[query] += 1
+            rejected_count_by_breadcrumb[breadcrumb] += 1
+
+    search_results_seen = len(discoveries)
+    search_pages_fetched = len(pages_seen)
+    unique_listing_count = len(seen_listing_keys)
+    duplicate_discovery_count = max(0, search_results_seen - unique_listing_count)
+
+    eligibility_rate = (
+        eligible_laptop_count / search_results_seen if search_results_seen > 0 else 0.0
+    )
+
+    all_queries = set(accepted_count_by_query.keys()) | set(rejected_count_by_query.keys())
+    eligibility_rate_by_query: dict[str, float] = {}
+    for q in all_queries:
+        acc = accepted_count_by_query.get(q, 0)
+        rej = rejected_count_by_query.get(q, 0)
+        tot = acc + rej
+        eligibility_rate_by_query[q] = acc / tot if tot > 0 else 0.0
+
+    observed_total_data_min = min(observed_total_data_values) if observed_total_data_values else None
+    observed_total_data_max = max(observed_total_data_values) if observed_total_data_values else None
+
+    report_dict = {
+        "search_pages_fetched": search_pages_fetched,
+        "search_results_seen": search_results_seen,
+        "eligible_laptop_count": eligible_laptop_count,
+        "rejected_non_laptop_count": rejected_non_laptop_count,
+        "eligibility_rate": eligibility_rate,
+        "duplicate_discovery_count": duplicate_discovery_count,
+        "unique_listing_count": unique_listing_count,
+        "eligibility_rate_by_query": dict(eligibility_rate_by_query),
+        "accepted_count_by_query": dict(accepted_count_by_query),
+        "rejected_count_by_query": dict(rejected_count_by_query),
+        "accepted_count_by_breadcrumb": dict(accepted_count_by_breadcrumb),
+        "rejected_count_by_breadcrumb": dict(rejected_count_by_breadcrumb),
+        "observed_total_data_min": observed_total_data_min,
+        "observed_total_data_max": observed_total_data_max,
+    }
+
+    if store and run_id:
+        coverage_report = build_quality_report(run_id, store)
+        report_dict.update(coverage_report.model_dump())
+
+    return report_dict
+
+
+def export_quality_report(crawl_dir: Path | str, data: dict[str, Any]) -> Path:
+    """Save quality report dictionary as quality.json in crawl_dir."""
+    out_dir = Path(crawl_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    json_path = out_dir / "quality.json"
+    json_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    return json_path
+
 
 def build_quality_report(run_id: str, store: SQLiteStore) -> QualityReport:
     """Generate a quality report for a given crawl run."""
@@ -35,7 +176,7 @@ def build_quality_report(run_id: str, store: SQLiteStore) -> QualityReport:
     rejected_count = store.count_rejected(run_id=run_id)
 
     row_count = len(products)
-    
+
     if row_count == 0:
         return QualityReport(
             row_count=0,
@@ -56,13 +197,12 @@ def build_quality_report(run_id: str, store: SQLiteStore) -> QualityReport:
             research_ready=False,
         )
 
-    # SQLiteStore.save already enforces primary key (crawl_run_id, listing_key)
     duplicate_count = 0
     invalid_numeric_count = 0
     invalid_eligibility_count = 0
     invalid_rating_count = 0
     invalid_discount_count = 0
-    
+
     product_names = 0
     prices = []
     sold_counts = 0
@@ -94,7 +234,7 @@ def build_quality_report(run_id: str, store: SQLiteStore) -> QualityReport:
     prices.sort()
     price_min = prices[0] if prices else None
     price_max = prices[-1] if prices else None
-    
+
     if prices:
         mid = len(prices) // 2
         if len(prices) % 2 == 0:
@@ -130,53 +270,3 @@ def build_quality_report(run_id: str, store: SQLiteStore) -> QualityReport:
         invalid_eligibility_count=invalid_eligibility_count,
         research_ready=research_ready,
     )
-
-
-def write_manifest(run_id: str, store: SQLiteStore, started_at: datetime, finished_at: datetime, output_dir: Path) -> Path:
-    """Write the reproducibility manifest."""
-    try:
-        git_commit = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], text=True
-        ).strip()
-    except subprocess.CalledProcessError:
-        git_commit = "unknown"
-    except FileNotFoundError:
-        git_commit = "unknown"
-
-    try:
-        import scrapling
-        scrapling_version = getattr(scrapling, "__version__", "unknown")
-    except ImportError:
-        scrapling_version = "unknown"
-
-    import platform
-    python_version = platform.python_version()
-
-    seed_file = Path("config/seeds.yaml")
-    seed_sha = "unknown"
-    if seed_file.exists():
-        hasher = hashlib.sha256()
-        hasher.update(seed_file.read_bytes())
-        seed_sha = hasher.hexdigest()
-
-    report = build_quality_report(run_id, store)
-
-    manifest_data = {
-        "crawl_run_id": run_id,
-        "started_at": started_at.isoformat(),
-        "finished_at": finished_at.isoformat(),
-        "python_version": python_version,
-        "scrapling_version": scrapling_version,
-        "git_commit": git_commit,
-        "seed_file_sha256": seed_sha,
-        "raw_rows": report.row_count,
-        "processed_rows": report.row_count,
-        "rejected_rows": report.rejected_count,
-        "quality": report.model_dump(),
-    }
-
-    output_dir.mkdir(parents=True, exist_ok=True)
-    manifest_path = output_dir / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest_data, indent=2), encoding="utf-8")
-    
-    return manifest_path

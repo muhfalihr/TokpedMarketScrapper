@@ -17,7 +17,8 @@ from laptop_market_scraper.parsers.state import (
     extract_state_candidates,
     score_candidates,
 )
-from laptop_market_scraper.quality import build_quality_report
+from laptop_market_scraper.manifest import generate_manifest, write_manifest
+from laptop_market_scraper.quality import build_quality_report, export_quality_report, generate_quality_report
 from laptop_market_scraper.spiders.tokopedia_laptop import TokopediaLaptopSpider
 from laptop_market_scraper.storage import SQLiteStore
 
@@ -56,6 +57,7 @@ def crawl(
 
     spider.start()
 
+
 @app.command()
 def export(
     run_id: str = typer.Option(..., help="Crawl run ID to export"),
@@ -84,21 +86,27 @@ def quality(
     db_path = crawl_dir / "laptops.db"
     store = SQLiteStore(db_path, data_dir=crawl_dir)
 
-    report = build_quality_report(run_id, store)
-
     run_report_dir = report_dir / run_id
     run_report_dir.mkdir(parents=True, exist_ok=True)
 
-    json_path = run_report_dir / "quality.json"
-    json_path.write_text(json.dumps(report.model_dump(), indent=2), encoding="utf-8")
+    report_data = generate_quality_report(store=store, run_id=run_id)
+    json_path = export_quality_report(run_report_dir, report_data)
 
     md_path = run_report_dir / "quality.md"
     md_content = f"# Quality Report: {run_id}\n\n"
-    for k, v in report.model_dump().items():
+    for k, v in report_data.items():
         md_content += f"- **{k}**: {v}\n"
     md_path.write_text(md_content, encoding="utf-8")
 
-    print(f"Quality reports written to {json_path} and {md_path}")
+    manifest_data = generate_manifest(
+        crawl_run_id=run_id,
+        observed_total_data_min=report_data.get("observed_total_data_min"),
+        observed_total_data_max=report_data.get("observed_total_data_max"),
+    )
+    manifest_path = write_manifest(run_report_dir, manifest_data)
+
+    print(f"Quality reports written to {json_path}, {md_path}, and {manifest_path}")
+
 
 
 @app.command()
