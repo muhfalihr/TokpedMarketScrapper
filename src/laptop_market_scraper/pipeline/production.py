@@ -68,10 +68,14 @@ class ProductionPipeline(BaseModel):
 
         # 2. Stage 1: Preflight
         if state.stage == PipelineStage.INITIALIZED:
-            run_production_preflight(
+            preflight_report = run_production_preflight(
                 target_unique=prod_cfg.target_unique_eligible,
                 configured_max_pages=prod_cfg.max_pages_total,
             )
+            if not preflight_report.capacity_sufficient and preflight_report.warning:
+                import logging
+                logging.warning("Preflight Capacity Warning: %s", preflight_report.warning)
+
             state.stage = PipelineStage.PREFLIGHT_COMPLETE
             state.updated_at = datetime.now(UTC).isoformat()
             save_pipeline_state(state, self.crawl_dir)
@@ -130,9 +134,9 @@ class ProductionPipeline(BaseModel):
 
         # 6. Stage 5: Feature Audit
         artifact_sha256 = "none"
+        reports_dir = self.crawl_dir / "reports" / run_id
         if not self.skip_audit and prod_cfg.run_audit_after_crawl:
             if state.stage == PipelineStage.QUALITY_COMPLETE:
-                reports_dir = self.crawl_dir / "reports" / run_id
                 reports_dir.mkdir(parents=True, exist_ok=True)
 
                 raw_candidates = [
@@ -141,18 +145,23 @@ class ProductionPipeline(BaseModel):
                     Path("data/raw") / run_id,
                     self.crawl_dir,
                 ]
-                raw_dir = next(
-                    (d for d in raw_candidates if (d / "products.jsonl").is_file()),
-                    next((d for d in raw_candidates if d.is_dir()), self.crawl_dir / run_id),
-                )
+                raw_dir = next((p for p in raw_candidates if (p / "products.jsonl").exists()), None)
 
-                audit_report = audit_features(run_id=run_id, store=store, raw_dir=raw_dir)
+                audit_report = audit_features(
+                    run_id=run_id,
+                    store=store,
+                    raw_dir=raw_dir,
+                )
                 json_path, _ = export_feature_audit(audit_report, reports_dir)
                 artifact_sha256 = get_file_sha256(json_path)
 
                 state.stage = PipelineStage.AUDIT_COMPLETE
                 state.updated_at = datetime.now(UTC).isoformat()
                 save_pipeline_state(state, self.crawl_dir)
+            elif state.stage == PipelineStage.AUDIT_COMPLETE:
+                json_path = reports_dir / "feature_audit.json"
+                if json_path.exists():
+                    artifact_sha256 = get_file_sha256(json_path)
 
         # 7. Stage 6: Manifest Generation & Export
         try:
