@@ -121,4 +121,40 @@ class CompleteCaseResult(BaseModel):
     complete_listing_keys: tuple[str, ...]
 
 
+class TransformationSignal(str, Enum):
+    LOG1P_RECOMMENDED = "LOG1P_RECOMMENDED"
+    LOG1P_OPTIONAL = "LOG1P_OPTIONAL"
+    RAW_PRESERVED = "RAW_PRESERVED"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+
+
+class DistributionResult(BaseModel):
+    feature_name: str
+    non_null_count: int
+    missing_count: int
+    coverage_percent: float
+    min_value: float | None = None
+    q01: float | None = None
+    q25: float | None = None
+    median: float | None = None
+    q75: float | None = None
+    q99: float | None = None
+    max_value: float | None = None
+    iqr: float | None = None
+    raw_skewness: float | None = None
+    log1p_skewness: float | None = None
+    absolute_skew_reduction: float | None = None
+    variance: float | None = None
+    std_dev: float | None = None
+    zero_count: int
+    zero_rate: float
+    unique_value_count: int
+    dominant_value_count: int
+    dominant_value_rate: float
+    zero_variance_flag: bool
+    near_zero_variance_flag: bool
+    transformation_signal: TransformationSignal
+
+
+
 
