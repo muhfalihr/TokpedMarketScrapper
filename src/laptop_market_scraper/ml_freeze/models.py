@@ -41,6 +41,24 @@ class ReviewCountSemanticStatus(StrEnum):
     MISSING_UNRESOLVED = "MISSING_UNRESOLVED"
 
 
+class ManualReviewStatus(StrEnum):
+    APPROVED_VALID = "APPROVED_VALID"
+    LEAKAGE = "LEAKAGE"
+    AMBIGUOUS = "AMBIGUOUS"
+
+
+class LowPriceReviewDecision(BaseModel):
+    listing_key: str
+    review_status: ManualReviewStatus
+    review_note: str
+
+    @model_validator(mode="after")
+    def validate_review_note(self) -> "LowPriceReviewDecision":
+        if not self.review_note or not self.review_note.strip():
+            raise ValueError("review_note must be a non-empty string")
+        return self
+
+
 class CleaningDecision(BaseModel):
     listing_key: str
     eligibility_decision: EligibilityDecision
