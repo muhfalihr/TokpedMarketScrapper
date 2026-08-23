@@ -1,0 +1,18 @@
+{
+  "title": "Tokopedia Laptop Market Dataset (2026)",
+  "id": "muhfalihr/tokopedia-laptop-market-dataset",
+  "licenses": [
+    {
+      "name": "CC-BY-SA-4.0"
+    }
+  ],
+  "subtitle": "Cleaned, audited, and semantically reconciled dataset of Tokopedia laptop search listings",
+  "keywords": [
+    "indonesia",
+    "e-commerce",
+    "laptops",
+    "market-research",
+    "data-cleaning",
+    "clustering"
+  ]
+}

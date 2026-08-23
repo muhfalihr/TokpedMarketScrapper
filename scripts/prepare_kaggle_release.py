@@ -87,7 +87,7 @@ The dataset is specifically structured for machine learning research, including:
 - `product_url` *(string)*: Canonical product URL.
 - `price` *(integer)*: List price in IDR.
 - `rating` *(float)*: User rating score (0.0 to 5.0).
-- `review_count` *(integer)*: Total verified buyer reviews (strictly $\ge 0$).
+- `review_count` *(integer)*: Total verified buyer reviews (strictly >= 0).
 
 ### Decision Ledger (`cleaning_decisions.csv`)
 Contains 12 columns: `listing_key`, `product_name`, `product_url`, `price`, `rating`, `review_count_original`, `review_count_resolved`, `eligibility_decision`, `eligibility_reason`, `review_count_status`, `include_r1`, `include_r2`, `exclusion_reasons_r1`, `exclusion_reasons_r2`, `evidence`.

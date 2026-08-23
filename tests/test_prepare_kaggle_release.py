@@ -1,8 +1,9 @@
 """Tests for prepare_kaggle_release script."""
 
 import json
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
 
 from scripts.prepare_kaggle_release import (
     prepare_kaggle_release,

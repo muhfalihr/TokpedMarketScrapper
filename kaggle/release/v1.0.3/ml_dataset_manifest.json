@@ -1,0 +1,65 @@
+{
+  "artifact": "ml-dataset-v1.0.3",
+  "source_run_id": "20260823T043405Z-2m8c6r37",
+  "source_rows": 2227,
+  "representations": {
+    "R1": {
+      "features": [
+        "price",
+        "rating"
+      ],
+      "rows": 2106,
+      "sha256": "00623b78e3ece31c12bb07e4848e85217737effb233a7d2fc1167b7c0eccbe49"
+    },
+    "R2": {
+      "features": [
+        "price",
+        "rating",
+        "review_count"
+      ],
+      "rows": 1588,
+      "sha256": "026a6cf8dbda5dee099fa4716d8dbd4c7cf4a490654c68ee6fe380bc913bc9b9"
+    }
+  },
+  "cleaning": {
+    "valid_laptop_count": 2163,
+    "excluded_count": 64,
+    "ambiguous_count": 0,
+    "exclusion_reason_counts": {
+      "NON_LAPTOP_COMPONENT": 29,
+      "NON_LAPTOP_ACCESSORY": 33,
+      "NON_LAPTOP_OTHER": 2
+    },
+    "review_count_semantics": {
+      "observed_count": 1266,
+      "explicit_zero": 372,
+      "semantic_zero_proven": 0,
+      "missing_unresolved": 589
+    }
+  },
+  "source_hashes": {
+    "raw_jsonl": "e996739d1904b72d80ecaedb25cdb97746e5926326eab80294ddb5a9536eda4d",
+    "readiness_json": "f8e8f36e27e6913aae54240201e03cc276a3d29d876f1d52101d9b4d06f73764",
+    "extreme_review": "5e199747b78d7399a5966fe2a120501ba9e98e580c1efe62d69af1e46a7f5bac",
+    "missingness_review": "b95dcd40ac5b2379b1d726051895df8aab7dab8bf59e50baccf358872e129eca",
+    "freeze_config": "f9944af6597a3bf0c8c510e4d475ce7070b63161653ecd59c9fbcb37c4bbc4f6"
+  },
+  "artifact_hashes": {
+    "r1_parquet": "00623b78e3ece31c12bb07e4848e85217737effb233a7d2fc1167b7c0eccbe49",
+    "r2_parquet": "026a6cf8dbda5dee099fa4716d8dbd4c7cf4a490654c68ee6fe380bc913bc9b9",
+    "cleaning_decisions": "5da5da47a050ef369ac8f15abcb2e2e1593c861c6ac2e3eaddf2b4bf8c0bea51",
+    "excluded_observations": "18ed0e862b7e78d3d8bb1b07745a2fa881197db42537f1118351ff938ce88db1",
+    "ambiguous_observations": "d0ee0752e3f344d2beb830cb9d2175071684593e58d1113f174269cc80a2ff92"
+  },
+  "git_commit": "08605c0c55d658f7bc68ff48e2d636bf84248069",
+  "acquisition_tag": "dataset-acquisition-v1.0",
+  "freeze_config_sha256": "cec5167ecf9b01deb4a78b6161029d375487c7fc74f7bbb7bdf60cabdbb0e16b",
+  "release_review": {
+    "low_price_review_required": 20,
+    "low_price_review_resolved": 20,
+    "approved_valid": 20,
+    "leakage": 0,
+    "ambiguous": 0,
+    "review_decisions_sha256": "ca229f2494bdcacc24c800ed1c8d5d3fb04e8838133691f7dac0689ab3c5cae4"
+  }
+}
