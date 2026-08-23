@@ -1,0 +1,17 @@
+[
+  {
+    "case_id": "charger_stand_alone",
+    "product_name": "Charger Laptop Lenovo 65W USB-C Original",
+    "expected_reason": "NON_LAPTOP_ACCESSORY"
+  },
+  {
+    "case_id": "sleeve_stand_alone",
+    "product_name": "Acer Sleevecase Laptop Original",
+    "expected_reason": "NON_LAPTOP_ACCESSORY"
+  },
+  {
+    "case_id": "lcd_replacement_panel",
+    "product_name": "LCD LED HP Ultrabook 14-B HD",
+    "expected_reason": "NON_LAPTOP_COMPONENT"
+  }
+]

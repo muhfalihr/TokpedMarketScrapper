@@ -1,0 +1,57 @@
+[
+  {
+    "case_id": "power_cable_notebook",
+    "product_name": "KABEL POWER FOR NOTEBOOK BAHAN TEBAL PANJANG 2 M FOR LAPTOP NOTEBOOK",
+    "expected_reason": "NON_LAPTOP_COMPONENT"
+  },
+  {
+    "case_id": "ram_laptop",
+    "product_name": "RAM LAPTOP SODIMM DDR5 DDR4 4GB 8GB 16GB 32GB ORIGINAL SAMSUNG ADATA",
+    "expected_reason": "NON_LAPTOP_COMPONENT"
+  },
+  {
+    "case_id": "battery_ultrabook",
+    "product_name": "Baterai Battery Dell Xps Ultrabook 13 Y9n00 Xps13 Xps 13 Original",
+    "expected_reason": "NON_LAPTOP_COMPONENT"
+  },
+  {
+    "case_id": "ssd_ultrabook",
+    "product_name": "SSD Toshiba Portege Ultrabook 512GB Original",
+    "expected_reason": "NON_LAPTOP_COMPONENT"
+  },
+  {
+    "case_id": "lcd_notebook",
+    "product_name": "LED LCD Notebook 11.6 Inch Slim 30 Pin Original",
+    "expected_reason": "NON_LAPTOP_COMPONENT"
+  },
+  {
+    "case_id": "flex_connector",
+    "product_name": "Konektor fleksibel HDD Laptop Asus X441 X441U X441N",
+    "expected_reason": "NON_LAPTOP_COMPONENT"
+  },
+  {
+    "case_id": "laptop_security_lock",
+    "product_name": "SECURITY LOCK KUNCI GEMBOK LAPTOP NOTEBOOK HP / LENOVO 1,8 METER - KUNCI",
+    "expected_reason": "NON_LAPTOP_ACCESSORY"
+  },
+  {
+    "case_id": "paper_notebook",
+    "product_name": "Daiichi Pop Notebook A5 Blue",
+    "expected_reason": "NON_LAPTOP_OTHER"
+  },
+  {
+    "case_id": "bubble_wrap_placeholder",
+    "product_name": "Bonus Pembelian Laptop Lenovo Yoga Pro - Bubble Wrap",
+    "expected_reason": "NON_LAPTOP_ACCESSORY"
+  },
+  {
+    "case_id": "protector_placeholder",
+    "product_name": "[ NEW ] Bonus Pembelian Macbook Air Macbook Pro Screen Protectot / Keyboard Protector",
+    "expected_reason": "NON_LAPTOP_ACCESSORY"
+  },
+  {
+    "case_id": "gaming_laptop_adaptor",
+    "product_name": "INNERGIE T24 240W GAMING LAPTOP POWER ADAPTOR",
+    "expected_reason": "NON_LAPTOP_ACCESSORY"
+  }
+]

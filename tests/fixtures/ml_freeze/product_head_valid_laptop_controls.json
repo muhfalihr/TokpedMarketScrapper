@@ -1,0 +1,32 @@
+[
+  {
+    "case_id": "laptop_with_ram_spec",
+    "product_name": "Laptop Lenovo ThinkPad T14 Ryzen 7 RAM 16GB SSD 512GB",
+    "expected_decision": "VALID_LAPTOP"
+  },
+  {
+    "case_id": "laptop_with_ssd_spec",
+    "product_name": "Laptop Toshiba Portege Intel Core i5 SSD 512GB RAM 16GB",
+    "expected_decision": "VALID_LAPTOP"
+  },
+  {
+    "case_id": "laptop_with_battery_spec",
+    "product_name": "Laptop Dell XPS 13 Core Ultra Battery 60Wh RAM 16GB SSD 1TB",
+    "expected_decision": "VALID_LAPTOP"
+  },
+  {
+    "case_id": "laptop_with_adapter_bundle",
+    "product_name": "Laptop Gaming ASUS ROG RTX 5070 32GB 1TB Adapter 240W Included",
+    "expected_decision": "VALID_LAPTOP"
+  },
+  {
+    "case_id": "laptop_with_lcd_spec",
+    "product_name": "Laptop Acer Aspire Spin 14 Touch LCD IPS 16GB 512GB",
+    "expected_decision": "VALID_LAPTOP"
+  },
+  {
+    "case_id": "laptop_with_battery_description",
+    "product_name": "Acer Lite AL1 14 I3 1215 8GB 512GB Win 11+OHS 14.0WUXGA IPS Laptop Baterai 6000mAh - Battery Garansi Resmi 2 Tahun",
+    "expected_decision": "VALID_LAPTOP"
+  }
+]

@@ -163,3 +163,31 @@ def test_semantic_true_positive_cases_must_be_excluded(case):
     )
 
 
+@pytest.mark.parametrize(
+    "case",
+    load_fixture_cases("product_head_false_negative_cases.json"),
+    ids=lambda c: c["case_id"],
+)
+def test_known_false_negative_is_excluded(case):
+    result = _assess(case["product_name"], price=case.get("price", 500_000))
+    assert result.decision == EligibilityDecision.EXCLUDE, (
+        f"False negative case '{case['case_id']}' failed: expected EXCLUDE, got {result.decision}"
+    )
+    assert result.reason.value == case["expected_reason"], (
+        f"False negative case '{case['case_id']}' failed: expected reason {case['expected_reason']}, got {result.reason.value}"
+    )
+
+
+@pytest.mark.parametrize(
+    "case",
+    load_fixture_cases("product_head_valid_laptop_controls.json"),
+    ids=lambda c: c["case_id"],
+)
+def test_product_head_hardening_preserves_valid_laptops(case):
+    result = _assess(case["product_name"], price=case.get("price", 10_000_000))
+    assert result.decision == EligibilityDecision.VALID_LAPTOP, (
+        f"Valid control case '{case['case_id']}' failed: expected VALID_LAPTOP, got {result.decision} ({result.reason})"
+    )
+
+
+
