@@ -168,6 +168,26 @@ class TokopediaLaptopSpider(Spider):
                     category_breadcrumb=getattr(product.category, "breadcrumb", None) if getattr(product, "category", None) else None,
                 )
 
+            if self.store and hasattr(self.store, "save_feature_provenance"):
+                if getattr(product, "price", None) is not None:
+                    self.store.save_feature_provenance(
+                        run_id=self.crawl_run_id,
+                        listing_key=listing_key,
+                        feature_name="price",
+                        source_layer="graphql_search",
+                        source_field="data.searchProductV5.data.products[].price.number",
+                        raw_value=product.price,
+                    )
+                if getattr(product, "rating", None) is not None:
+                    self.store.save_feature_provenance(
+                        run_id=self.crawl_run_id,
+                        listing_key=listing_key,
+                        feature_name="rating",
+                        source_layer="graphql_search",
+                        source_field="data.searchProductV5.data.products[].rating",
+                        raw_value=product.rating,
+                    )
+
             # 2. Evaluate laptop eligibility
             eligibility = evaluate_laptop_eligibility(product)
 
@@ -357,6 +377,19 @@ class TokopediaLaptopSpider(Spider):
             saved = self.store.save(normalized)
             if saved:
                 self.items_scraped += 1
+                if hasattr(self.store, "save_feature_provenance"):
+                    lk = normalized.listing_key
+                    run_id = self.crawl_run_id
+                    if normalized.price is not None:
+                        self.store.save_feature_provenance(run_id, lk, "price", "product_detail_html", "price_raw", normalized.price)
+                    if normalized.review_count is not None:
+                        self.store.save_feature_provenance(run_id, lk, "review_count", "product_detail_html", "review_count_raw", normalized.review_count)
+                    if normalized.rating is not None:
+                        self.store.save_feature_provenance(run_id, lk, "rating", "product_detail_html", "rating_raw", normalized.rating)
+                    if normalized.sold_count is not None:
+                        self.store.save_feature_provenance(run_id, lk, "sold_count", "product_detail_html", "sold_count_raw", normalized.sold_count)
+                    if normalized.view_count is not None:
+                        self.store.save_feature_provenance(run_id, lk, "view_count", "product_detail_html", "view_count_raw", normalized.view_count)
         else:
             self.items_scraped += 1
 

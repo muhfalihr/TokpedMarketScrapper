@@ -100,6 +100,7 @@ class ProductionPipeline(BaseModel):
                 store=store,
                 seed_config=str(self.seed_config_path),
                 max_pages=prod_cfg.max_pages_total,
+                max_items=prod_cfg.target_unique_eligible,
             )
             spider.start()
 
