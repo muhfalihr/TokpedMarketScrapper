@@ -184,3 +184,20 @@ class AssociationResult(BaseModel):
     strength: str | None = None
     redundancy_review: bool
 
+
+class RepresentationStatus(str, Enum):
+    READY = "READY"
+    READY_WITH_CAVEATS = "READY_WITH_CAVEATS"
+    REVIEW_REQUIRED = "REVIEW_REQUIRED"
+    NOT_READY = "NOT_READY"
+
+
+class RepresentationReadiness(BaseModel):
+    representation_id: str
+    required_features: tuple[str, ...]
+    status: RepresentationStatus
+    caveats: tuple[str, ...] = ()
+    complete_rows: int
+    retention_percent: float
+
+

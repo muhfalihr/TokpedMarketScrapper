@@ -38,8 +38,14 @@ from laptop_market_scraper.ml_readiness.models import (
     MissingnessResult,
     MissingSemanticStatus,
     RepresentationConfig,
+    RepresentationReadiness,
+    RepresentationStatus,
     TransformationSignal,
     load_ml_readiness_config,
+)
+from laptop_market_scraper.ml_readiness.representations import (
+    evaluate_all_representations,
+    evaluate_representation,
 )
 
 __all__ = [
@@ -54,8 +60,10 @@ __all__ = [
     "MissingSemanticStatus",
     "MissingnessCase",
     "MissingnessResult",
-    "RepresentationConfig",
     "ReadinessDataset",
+    "RepresentationConfig",
+    "RepresentationReadiness",
+    "RepresentationStatus",
     "TransformationSignal",
     "analyze_all_distributions",
     "analyze_all_representations",
@@ -68,6 +76,8 @@ __all__ = [
     "audit_dataset_integrity",
     "audit_missingness",
     "detect_extreme_prices",
+    "evaluate_all_representations",
+    "evaluate_representation",
     "load_ml_readiness_config",
     "load_readiness_dataset",
 ]
