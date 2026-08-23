@@ -1,0 +1,13 @@
+production:
+  target_unique_eligible: 250
+  minimum_research_sample: 100
+
+  concurrent_requests: 4
+
+  require_clean_git: false
+  required_acquisition_tag: "dataset-acquisition-v1.0"
+
+  run_audit_after_crawl: true
+  run_quality_after_crawl: true
+
+  max_pages_total: 25
