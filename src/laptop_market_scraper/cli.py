@@ -8,6 +8,11 @@ from pathlib import Path
 import typer
 from scrapling import Fetcher
 
+from laptop_market_scraper.audit import (
+    FeatureSuitability,
+    audit_features,
+    export_feature_audit,
+)
 from laptop_market_scraper.manifest import generate_manifest, write_manifest
 from laptop_market_scraper.parsers.listing import parse_listing_page
 from laptop_market_scraper.parsers.state import (
@@ -238,6 +243,76 @@ def inspect_listing(
         f"rejected={diag.product_urls_rejected}, "
         f"dom_fallback={'yes' if diag.dom_fallback_used else 'no'}"
     )
+
+
+@app.command("audit-features")
+def audit_features_cmd(
+    run_id: str = typer.Option(..., "--run-id", help="Crawl run ID to audit"),
+    crawl_dir: Path = typer.Option(
+        Path("crawl_state"), "--crawl-dir", help="Directory containing crawl state and database"
+    ),
+    output_dir: Path | None = typer.Option(
+        None, "--output-dir", help="Directory to save audit artifacts (default: reports/<run_id>/)"
+    ),
+    strict: bool = typer.Option(False, "--strict", help="Return non-zero exit code if integrity checks fail"),
+) -> None:
+    """Execute feature availability and dataset integrity audit on a crawl run."""
+    db_candidate_1 = crawl_dir / run_id / "laptops.db"
+    db_candidate_2 = crawl_dir / "laptops.db"
+    if db_candidate_1.is_file():
+        db_path = db_candidate_1
+    elif db_candidate_2.is_file():
+        db_path = db_candidate_2
+    else:
+        db_path = db_candidate_1
+
+    store = SQLiteStore(db_path, data_dir=crawl_dir)
+
+    raw_candidates = [
+        crawl_dir / run_id,
+        crawl_dir / "raw" / run_id,
+        Path("data/raw") / run_id,
+        crawl_dir,
+    ]
+    raw_dir = next(
+        (d for d in raw_candidates if (d / "products.jsonl").is_file()),
+        next((d for d in raw_candidates if d.is_dir()), crawl_dir / run_id),
+    )
+
+    if output_dir is None:
+        output_dir = Path("reports") / run_id
+
+    report = audit_features(run_id=run_id, store=store, raw_dir=raw_dir)
+    json_path, md_path = export_feature_audit(report, output_dir)
+
+    strong_count = sum(
+        1 for r in report.results if r.suitability == FeatureSuitability.STRONG_CANDIDATE
+    )
+    conditional_count = sum(
+        1 for r in report.results if r.suitability == FeatureSuitability.CONDITIONAL
+    )
+    weak_count = sum(
+        1 for r in report.results if r.suitability == FeatureSuitability.WEAK_CANDIDATE
+    )
+    unusable_count = sum(
+        1 for r in report.results if r.suitability == FeatureSuitability.UNUSABLE
+    )
+
+    typer.echo("Feature Audit Completed\n")
+    typer.echo(f"Run: {run_id}")
+    typer.echo(f"Eligible Products: {report.total_eligible_listings}\n")
+    typer.echo(f"Strong candidates: {strong_count}")
+    typer.echo(f"Conditional: {conditional_count}")
+    typer.echo(f"Weak: {weak_count}")
+    typer.echo(f"Unusable: {unusable_count}\n")
+    typer.echo(f"JSON: {json_path}")
+    typer.echo(f"Markdown: {md_path}")
+
+    if strict and (
+        report.integrity.missing_raw_counterparts > 0
+        or report.integrity.orphan_normalized_records > 0
+    ):
+        raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":
