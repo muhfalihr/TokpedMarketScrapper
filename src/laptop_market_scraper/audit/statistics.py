@@ -1,5 +1,6 @@
 import math
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -37,7 +38,7 @@ def calculate_numeric_stats(
         if len(items) > 0:
             try:
                 observed_dtype = str(pd.Series(items).dtype)
-            except Exception:
+            except (TypeError, ValueError, AttributeError):
                 observed_dtype = expected_dtype
         else:
             observed_dtype = expected_dtype
