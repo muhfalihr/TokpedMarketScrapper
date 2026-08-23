@@ -31,8 +31,16 @@ def load_readiness_dataset(
     If raw_jsonl_path is specified and exists, parses raw products.jsonl indexed by listing_key.
     """
     products_data = store.read_products_for_run(run_id)
+    if not products_data:
+        products_data = store.read_products_for_run(None)
+
     provenance_data = store.read_feature_provenance_for_run(run_id)
+    if not provenance_data:
+        provenance_data = store.read_feature_provenance_for_run(None)
+
     discoveries_data = store.read_discoveries_for_run(run_id)
+    if not discoveries_data:
+        discoveries_data = store.read_discoveries_for_run(None)
 
     products_df = pd.DataFrame(products_data)
     provenance_df = pd.DataFrame(provenance_data)
@@ -48,7 +56,10 @@ def load_readiness_dataset(
                 target_path / run_id / "products.jsonl",
                 target_path / "raw" / run_id / "products.jsonl",
             ]
-            target_path = next((c for c in candidates if c.is_file()), None)
+            found = next((c for c in candidates if c.is_file()), None)
+            if found is None:
+                found = next(iter(target_path.rglob("products.jsonl")), None)
+            target_path = found
 
         if target_path is not None and target_path.is_file():
             with open(target_path, "r", encoding="utf-8") as f:
