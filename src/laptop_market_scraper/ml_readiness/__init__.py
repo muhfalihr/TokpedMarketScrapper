@@ -48,6 +48,10 @@ from laptop_market_scraper.ml_readiness.models import (
     TransformationSignal,
     load_ml_readiness_config,
 )
+from laptop_market_scraper.ml_readiness.render import (
+    render_ml_readiness_markdown,
+    write_ml_readiness_artifacts,
+)
 from laptop_market_scraper.ml_readiness.representations import (
     evaluate_all_representations,
     evaluate_representation,
@@ -87,5 +91,7 @@ __all__ = [
     "evaluate_representation",
     "load_ml_readiness_config",
     "load_readiness_dataset",
+    "render_ml_readiness_markdown",
     "run_ml_readiness_audit",
+    "write_ml_readiness_artifacts",
 ]
