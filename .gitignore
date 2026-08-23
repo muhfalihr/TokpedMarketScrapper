@@ -20,3 +20,13 @@ data/
 reports/
 *.egg-info/
 .serena/
+
+# Debug, lock, and temporary scratch scripts
+debug/
+uv.lock
+scripts/find_laptop_category_ids.py
+scripts/inspect_*.py
+scripts/probe_*.py
+scripts/replay_*.py
+scripts/test_category_filter_param.py
+scripts/test_replay.py
