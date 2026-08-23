@@ -159,3 +159,12 @@ def test_freeze_excludes_lcd_panel(freeze_env):
     # ThinkPad X1 (x1-1) in R1, but not R2 (missing review_count)
     assert "x1-1" in r1["listing_key"].values
     assert "x1-1" not in r2["listing_key"].values
+
+
+def test_finalization_does_not_change_representation_contracts():
+    from laptop_market_scraper.ml_freeze.config import load_ml_freeze_config
+
+    config = load_ml_freeze_config("config/ml_freeze.yaml")
+    assert config.representations["R1"].features == ("price", "rating")
+    assert config.representations["R2"].features == ("price", "rating", "review_count")
+

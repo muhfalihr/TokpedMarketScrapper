@@ -190,4 +190,10 @@ def test_product_head_hardening_preserves_valid_laptops(case):
     )
 
 
+def test_low_price_review_threshold_cannot_exclude_valid_laptop():
+    result = _assess("Laptop ThinkPad X250 Second Core i5", price=1_500_000)
+    assert result.decision == EligibilityDecision.VALID_LAPTOP
+
+
+
 
