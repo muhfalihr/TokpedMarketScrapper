@@ -156,5 +156,20 @@ class DistributionResult(BaseModel):
     transformation_signal: TransformationSignal
 
 
-
-
+class ExtremePriceObservation(BaseModel):
+    listing_key: str
+    product_name: str | None = None
+    product_url: str | None = None
+    price: float
+    breadcrumb: str | None = None
+    shop_name: str | None = None
+    lower_quantile_flag: bool
+    upper_quantile_flag: bool
+    iqr_flag: bool
+    robust_z_flag: bool
+    robust_z_score: float | None = None
+    trigger_names: tuple[str, ...]
+    raw_price_value: str | int | float | None = None
+    price_source: str | None = None
+    review_status: str = "UNREVIEWED"
+    review_note: str = ""

@@ -7,6 +7,9 @@ from laptop_market_scraper.ml_readiness.distributions import (
     analyze_all_distributions,
     analyze_distribution,
 )
+from laptop_market_scraper.ml_readiness.extremes import (
+    detect_extreme_prices,
+)
 from laptop_market_scraper.ml_readiness.integrity import (
     audit_dataset_integrity,
 )
@@ -22,6 +25,7 @@ from laptop_market_scraper.ml_readiness.models import (
     AssociationConfig,
     CompleteCaseResult,
     DistributionResult,
+    ExtremePriceObservation,
     ExtremesConfig,
     IntegrityResult,
     MLReadinessConfig,
@@ -37,6 +41,7 @@ __all__ = [
     "AssociationConfig",
     "CompleteCaseResult",
     "DistributionResult",
+    "ExtremePriceObservation",
     "ExtremesConfig",
     "IntegrityResult",
     "MLReadinessConfig",
@@ -54,6 +59,7 @@ __all__ = [
     "audit_complete_cases",
     "audit_dataset_integrity",
     "audit_missingness",
+    "detect_extreme_prices",
     "load_ml_readiness_config",
     "load_readiness_dataset",
 ]
