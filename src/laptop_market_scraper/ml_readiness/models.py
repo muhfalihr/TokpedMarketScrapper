@@ -201,3 +201,26 @@ class RepresentationReadiness(BaseModel):
     retention_percent: float
 
 
+class AuditProvenance(BaseModel):
+    git_commit: str
+    acquisition_tag: str
+    search_contract_sha256: str
+    feature_audit_sha256: str
+    readiness_config_sha256: str
+
+
+class MLReadinessReport(BaseModel):
+    run_id: str
+    generated_at: str
+    dataset_rows: int
+    integrity: IntegrityResult
+    missingness: MissingnessResult
+    complete_cases: dict[str, CompleteCaseResult]
+    distributions: dict[str, DistributionResult]
+    extreme_prices: tuple[ExtremePriceObservation, ...]
+    associations: tuple[AssociationResult, ...]
+    representations: dict[str, RepresentationReadiness]
+    provenance: AuditProvenance
+
+
+
