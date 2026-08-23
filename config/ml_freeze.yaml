@@ -1,0 +1,59 @@
+freeze:
+  version: "1.0"
+  artifact_name: "ml-dataset-v1.0"
+
+  representations:
+    R1:
+      features:
+        - price
+        - rating
+
+    R2:
+      features:
+        - price
+        - rating
+        - review_count
+
+  eligibility:
+    allow_ambiguous_in_ml: false
+
+    accessory_terms:
+      - charger
+      - adaptor
+      - adapter
+      - tas laptop
+      - sleeve
+      - cooling pad
+      - stand laptop
+      - stiker
+      - sticker
+
+    component_terms:
+      - lcd
+      - layar lcd
+      - keyboard
+      - keyborad
+      - kabel fleksibel
+      - flex cable
+      - shell
+      - casing
+      - sparepart
+      - spare part
+      - baterai laptop
+
+    invalid_price_terms:
+      - dp
+      - down payment
+      - uang muka
+      - cicilan
+      - deposit
+
+  review_count:
+    default_missing_policy: "KEEP_MISSING"
+    allow_semantic_zero_recode: false
+
+  outputs:
+    include_identity_columns:
+      - listing_key
+      - product_name
+      - product_url
