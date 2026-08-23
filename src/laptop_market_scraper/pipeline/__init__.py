@@ -1,3 +1,9 @@
+from laptop_market_scraper.pipeline.preflight import (
+    CandidateBudgetEstimate,
+    ProductionPreflightReport,
+    estimate_candidate_budget,
+    run_production_preflight,
+)
 from laptop_market_scraper.pipeline.state import (
     PipelineStage,
     PipelineState,
@@ -8,6 +14,10 @@ from laptop_market_scraper.pipeline.state import (
 )
 
 __all__ = [
+    "CandidateBudgetEstimate",
+    "ProductionPreflightReport",
+    "estimate_candidate_budget",
+    "run_production_preflight",
     "PipelineStage",
     "PipelineState",
     "ProductionConfig",
@@ -15,3 +25,4 @@ __all__ = [
     "load_production_config",
     "save_pipeline_state",
 ]
+
