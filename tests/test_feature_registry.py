@@ -1,4 +1,3 @@
-import pytest
 
 from laptop_market_scraper.audit.models import FeatureRegistryEntry, ReliabilityStatus
 from laptop_market_scraper.audit.registry import (

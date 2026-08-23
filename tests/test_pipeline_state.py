@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-import pytest
 from laptop_market_scraper.pipeline.state import (
     PipelineStage,
     PipelineState,

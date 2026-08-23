@@ -1,6 +1,7 @@
 """Production capacity and yield preflight estimation module."""
 
 import math
+
 from pydantic import BaseModel
 
 

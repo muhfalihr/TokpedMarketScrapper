@@ -37,10 +37,6 @@ def render_feature_audit_markdown(
     # Title & Metadata
     lines.append("# Feature Availability Audit")
     lines.append("")
-    lines.append(f"- **Run ID**: `{report.run_id}`")
-    lines.append(f"- **Generated At**: `{report.generated_at}`")
-    lines.append(f"- **Total Eligible Listings**: `{report.total_eligible_listings}`")
-    lines.append("")
 
     # 1. Audit Metadata
     lines.append("## Audit Metadata")

@@ -1,6 +1,6 @@
 import tempfile
 from pathlib import Path
-import pytest
+
 from laptop_market_scraper.models import FeatureProvenance
 from laptop_market_scraper.storage import SQLiteStore
 

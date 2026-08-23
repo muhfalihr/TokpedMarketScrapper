@@ -1,12 +1,10 @@
-from datetime import datetime, timezone
-from enum import Enum
-import json
 import os
+from datetime import UTC, datetime
+from enum import Enum
 from pathlib import Path
-from typing import Any
 
-from pydantic import BaseModel, Field
 import yaml
+from pydantic import BaseModel, Field
 
 
 class PipelineStage(str, Enum):
@@ -36,7 +34,7 @@ class PipelineState(BaseModel):
     stage: PipelineStage = PipelineStage.INITIALIZED
     target_unique_eligible: int = 5000
     actual_unique_eligible: int = 0
-    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
 
 
 def load_production_config(path: Path | str = "config/production.yaml") -> ProductionConfig:
