@@ -1,5 +1,7 @@
 import json
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
+
 import pandas as pd
 
 from laptop_market_scraper.ml_readiness.loader import ReadinessDataset
@@ -35,7 +37,7 @@ def _extract_raw_price_info(
                 val_str = str(row["raw_value_json"])
                 try:
                     raw_price_val = json.loads(val_str)
-                except Exception:
+                except (json.JSONDecodeError, TypeError, ValueError):
                     raw_price_val = val_str
             elif "raw_value" in row and pd.notna(row["raw_value"]):
                 raw_price_val = row["raw_value"]

@@ -1,10 +1,8 @@
 import pandas as pd
-import pytest
 
 from laptop_market_scraper.ml_readiness import (
-    MissingSemanticStatus,
-    MissingnessCase,
     MissingnessResult,
+    MissingSemanticStatus,
     ReadinessDataset,
     analyze_missingness,
     audit_missingness,

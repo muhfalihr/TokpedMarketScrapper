@@ -1,4 +1,5 @@
 from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
@@ -6,7 +7,6 @@ from laptop_market_scraper.ml_readiness import (
     AssociationConfig,
     ExtremesConfig,
     MLReadinessConfig,
-    RepresentationConfig,
     load_ml_readiness_config,
 )
 

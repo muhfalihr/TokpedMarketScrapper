@@ -1,11 +1,10 @@
 import csv
-import json
 from pathlib import Path
+
 import pytest
 
 from laptop_market_scraper.ml_readiness import (
     AssociationConfig,
-    AuditProvenance,
     ExtremesConfig,
     MLReadinessConfig,
     MLReadinessReport,

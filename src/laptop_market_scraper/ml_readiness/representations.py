@@ -7,9 +7,9 @@ from laptop_market_scraper.ml_readiness.models import (
     CompleteCaseResult,
     DistributionResult,
     IntegrityResult,
-    MLReadinessConfig,
     MissingnessResult,
     MissingSemanticStatus,
+    MLReadinessConfig,
     RepresentationReadiness,
     RepresentationStatus,
 )
@@ -36,13 +36,7 @@ def evaluate_representation(
     if not integrity.passed:
         failed_features = []
         for feat in features:
-            if feat in integrity.missing_required_columns:
-                failed_features.append(feat)
-            elif feat == "price" and len(integrity.invalid_price_keys) > 0:
-                failed_features.append(feat)
-            elif feat == "rating" and len(integrity.invalid_rating_keys) > 0:
-                failed_features.append(feat)
-            elif feat == "review_count" and len(integrity.invalid_review_count_keys) > 0:
+            if feat in integrity.missing_required_columns or feat == "price" and len(integrity.invalid_price_keys) > 0 or feat == "rating" and len(integrity.invalid_rating_keys) > 0 or feat == "review_count" and len(integrity.invalid_review_count_keys) > 0:
                 failed_features.append(feat)
 
         if failed_features:

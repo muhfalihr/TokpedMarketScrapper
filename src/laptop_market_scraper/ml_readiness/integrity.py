@@ -1,5 +1,6 @@
 import math
 from typing import Any
+
 import pandas as pd
 
 from laptop_market_scraper.ml_readiness.loader import ReadinessDataset
@@ -55,7 +56,7 @@ def audit_dataset_integrity(
     missing_required_columns = tuple(col for col in required_columns if col not in products_df.columns)
 
     # 2. Extract keys & key uniqueness
-    raw_keys_set = set(str(k) for k in raw_map.keys())
+    raw_keys_set = {str(k) for k in raw_map}
     unique_raw_keys = len(raw_keys_set)
 
     duplicate_normalized_keys: tuple[str, ...] = ()

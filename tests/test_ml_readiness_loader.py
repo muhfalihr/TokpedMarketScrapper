@@ -1,10 +1,11 @@
 from pathlib import Path
-import pytest
-import pandas as pd
 
+import pandas as pd
+import pytest
+
+from laptop_market_scraper.ml_readiness import ReadinessDataset, load_readiness_dataset
 from laptop_market_scraper.models import NormalizedProduct
 from laptop_market_scraper.storage import SQLiteStore
-from laptop_market_scraper.ml_readiness import ReadinessDataset, load_readiness_dataset
 
 
 @pytest.fixture

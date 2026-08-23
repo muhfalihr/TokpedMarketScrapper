@@ -376,7 +376,7 @@ def audit_ml_readiness_cmd(
         raw_jsonl_path=raw_dir,
         config=config,
     )
-    json_path, md_path, extreme_csv, missing_csv = write_ml_readiness_artifacts(
+    _json_path, md_path, _extreme_csv, _missing_csv = write_ml_readiness_artifacts(
         report,
         output_dir=output_dir,
         **write_kwargs,

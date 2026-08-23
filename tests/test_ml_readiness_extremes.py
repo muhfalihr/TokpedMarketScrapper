@@ -1,10 +1,8 @@
-import numpy as np
 import pandas as pd
 import pytest
 
 from laptop_market_scraper.ml_readiness import (
     AssociationConfig,
-    ExtremePriceObservation,
     ExtremesConfig,
     MLReadinessConfig,
     ReadinessDataset,
@@ -171,7 +169,6 @@ def test_zero_mad_fallback(sample_config):
 
 def test_queue_deterministic_sorting(sample_config):
     # Setup observations with different trigger counts, robust_z, price, listing_key
-    prices = [10.0] * 50 + [10.0, 11.0, 12.0, 13.0, 1000.0, 2000.0]
     frame = pd.DataFrame(
         [
             {"listing_key": "key_b", "price": 2000.0},

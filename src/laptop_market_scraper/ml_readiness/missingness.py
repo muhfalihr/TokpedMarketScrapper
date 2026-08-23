@@ -14,9 +14,7 @@ from laptop_market_scraper.ml_readiness.models import (
 def _is_missing(val: Any) -> bool:
     if val is None or pd.isna(val):
         return True
-    if isinstance(val, float) and math.isnan(val):
-        return True
-    return False
+    return bool(isinstance(val, float) and math.isnan(val))
 
 
 def _clean_float(val: Any) -> float | None:
@@ -117,7 +115,7 @@ def analyze_missingness(dataset: ReadinessDataset) -> MissingnessResult:
 
     provenance_keys: set[str] = set()
     if not provenance_df.empty and "listing_key" in provenance_df.columns:
-        provenance_keys = set(str(k) for k in provenance_df["listing_key"].dropna())
+        provenance_keys = {str(k) for k in provenance_df["listing_key"].dropna()}
 
     complete_rating_and_reviews = 0
     missing_rating_only = 0
