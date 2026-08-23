@@ -1,0 +1,28 @@
+[
+  {
+    "product_name": "LCD LED HP Ultrabook 14-B HD",
+    "expected": "EXCLUDE"
+  },
+  {
+    "product_name": "Keyboard Docking Lenovo Thinkpad Helix Ultrabook Gen2",
+    "expected": "EXCLUDE"
+  },
+  {
+    "product_name": "Kabel Fleksibel LCD Acer Ultrabook S3-951",
+    "expected": "EXCLUDE"
+  },
+  {
+    "product_name": "Laptop Shell For Lenovo Thinkpad Helix Ultrabook",
+    "expected": "EXCLUDE"
+  },
+  {
+    "product_name": "Acer Predator Helios 18 AI RTX 5090 Laptop Gaming",
+    "price": 189999008,
+    "expected": "VALID_LAPTOP"
+  },
+  {
+    "product_name": "ASUS ROG STRIX SCAR 16 RTX5090 Laptop Gaming",
+    "price": 105598896,
+    "expected": "VALID_LAPTOP"
+  }
+]

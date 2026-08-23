@@ -14,6 +14,7 @@ from laptop_market_scraper.audit import (
     export_feature_audit,
 )
 from laptop_market_scraper.manifest import generate_manifest, write_manifest
+from laptop_market_scraper.ml_freeze import freeze_ml_dataset
 from laptop_market_scraper.ml_readiness import (
     load_ml_readiness_config,
     run_ml_readiness_audit,
@@ -436,7 +437,74 @@ def production_run_cmd(
     typer.echo(f"Production pipeline run completed: run_id={state.run_id}, stage={state.stage.value}")
 
 
+@app.command("freeze-ml-dataset")
+def freeze_ml_dataset_cmd(
+    run_id: str = typer.Option(..., "--run-id", help="Source crawl run ID"),
+    config: Path = typer.Option(
+        Path("config/ml_freeze.yaml"), "--config", help="ML freeze config YAML"
+    ),
+    output_dir: Path | None = typer.Option(
+        None, "--output-dir", help="Base output directory"
+    ),
+    strict: bool = typer.Option(
+        False, "--strict", help="Fail on validation warnings/errors"
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Run preview without finalizing artifacts"
+    ),
+) -> None:
+    """Freeze audited Tokopedia dataset into immutable ML datasets."""
+    # Resolve default paths
+    db_path = Path(f"data/interim/{run_id}/crawl.sqlite3")
+    if not db_path.exists():
+        # Fallback to standard crawl_state directory
+        db_path = Path(f"crawl_state/{run_id}/laptops.db")
+        if not db_path.exists():
+            db_path = Path("crawl_state/production/laptops.db")
+
+    raw_jsonl = Path(f"data/raw/{run_id}/products.jsonl")
+    if not raw_jsonl.exists():
+        raw_jsonl = Path(f"crawl_state/{run_id}/products.jsonl")
+        if not raw_jsonl.exists():
+            raw_jsonl = Path("crawl_state/production/products.jsonl")
+
+    readiness_json = Path(f"reports/{run_id}/ml_readiness.json")
+    extreme_csv = Path(f"reports/{run_id}/extreme_price_review.csv")
+    missingness_csv = Path(f"reports/{run_id}/missingness_cases.csv")
+
+    base_output = output_dir if output_dir else Path(f"data/ml/{run_id}")
+
+    store = SQLiteStore(db_path, data_dir=db_path.parent)
+
+    try:
+        result = freeze_ml_dataset(
+            run_id=run_id,
+            config_path=config,
+            store=store,
+            raw_jsonl_path=raw_jsonl,
+            readiness_json_path=readiness_json,
+            extreme_review_path=extreme_csv,
+            missingness_review_path=missingness_csv,
+            output_dir=base_output,
+            dry_run=dry_run,
+        )
+
+        typer.echo("ML Dataset Freeze Completed\n")
+        typer.echo(f"Source run: {run_id}")
+        typer.echo(f"Source rows: {result.source_row_count}\n")
+        typer.echo("R1 price + rating:")
+        typer.echo(f"  rows: {result.r1_rows}")
+        typer.echo("R2 price + rating + review_count:")
+        typer.echo(f"  rows: {result.r2_rows}\n")
+        typer.echo(f"Manifest: {result.manifest_path}")
+
+    except Exception as e:
+        typer.echo(f"Error during freeze: {e}", err=True)
+        raise typer.Exit(code=1) from e
+
+
 if __name__ == "__main__":
     app()
+
 
 

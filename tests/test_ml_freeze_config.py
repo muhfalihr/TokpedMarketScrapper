@@ -9,7 +9,6 @@ from laptop_market_scraper.ml_freeze.models import (
     EligibilityDecision,
     EligibilityReason,
     FreezeEligibilityConfig,
-    FreezeOutputsConfig,
     FreezeRepresentation,
     FreezeReviewCountConfig,
     MLFreezeConfig,
