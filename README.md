@@ -1,18 +1,39 @@
 # Tokopedia Laptop Dataset Scraper
 
-A restartable, polite, research-grade Scrapling crawler and ML dataset pipeline that collects, cleans, audits, and validates public Tokopedia laptop product listings into reproducible raw JSONL, CSV/Parquet datasets, and Kaggle release packages.
+A restartable, polite, research-grade Scrapling crawler and ML dataset pipeline that collects, cleans, audits, and validates public Tokopedia laptop product listings into reproducible raw JSONL, processed CSV/Parquet datasets, and Kaggle release packages.
 
 ---
 
 ## 🛠️ Installation
 
-```powershell
-# Create and activate virtual environment (Windows PowerShell)
+```bash
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+source .venv/bin/activate  # On Windows: .\.venv\Scripts\Activate.ps1
+pip install -e .
+```
 
-# Install package and dependencies
-.venv\Scripts\pip.exe install -e .
+---
+
+## 🚀 Usage & Basic Commands
+
+Start a crawl:
+```bash
+laptop-scraper crawl --seed-config config/seeds.yaml --crawl-dir crawl_state/tokopedia_laptop --max-items 5000
+```
+
+Export dataset to CSV and Parquet:
+```bash
+laptop-scraper export --run-id <run-id>
+```
+
+Generate quality report:
+```bash
+laptop-scraper quality --run-id <run-id>
+```
+
+Inspect crawl stats:
+```bash
+laptop-scraper inspect --run-id <run-id>
 ```
 
 ---
@@ -23,17 +44,12 @@ python -m venv .venv
 
 Collect Tokopedia search listings into SQLite state database and raw JSONL records:
 
-```powershell
+```bash
 # Start search crawl
-.venv\Scripts\python.exe -m laptop_market_scraper.cli crawl-search `
-  --query "laptop" `
-  --max-pages 50 `
-  --run-id 20260823T043405Z-2m8c6r37
+laptop-scraper crawl --seed-config config/seeds.yaml --crawl-dir crawl_state/smoke-250 --max-pages 50
 
-# Evaluate acquisition readiness
-.venv\Scripts\python.exe -m laptop_market_scraper.cli evaluate-acquisition `
-  --db-path crawl_state/smoke-250/laptops.db `
-  --output-dir reports/smoke-250
+# Audit ML dataset readiness
+laptop-scraper audit-ml-readiness --run-id 20260823T043405Z-2m8c6r37 --crawl-dir crawl_state/smoke-250
 ```
 
 ---
@@ -42,20 +58,15 @@ Collect Tokopedia search listings into SQLite state database and raw JSONL recor
 
 Classify semantic eligibility, exclude down payments and standalone component/accessory listings (RAM, LCD screens, chargers), resolve missing review count semantics (`KEEP_MISSING`), and generate frozen matrices R1 (`price + rating`) and R2 (`price + rating + review_count`):
 
-```powershell
-.venv\Scripts\python.exe -m laptop_market_scraper.cli freeze-ml-dataset `
-  --run-id 20260823T043405Z-2m8c6r37 `
-  --config-path config/ml_freeze.yaml `
-  --db-path crawl_state/smoke-250/laptops.db `
-  --raw-jsonl-path crawl_state/smoke-250/raw/20260823T043405Z-2m8c6r37/products.jsonl `
-  --readiness-json-path reports/smoke-250/ml_readiness.json `
-  --extreme-review-path reports/smoke-250/extreme_price_review.csv `
-  --missingness-review-path reports/smoke-250/missingness_cases.csv `
-  --review-decisions-path reviews/ml_freeze/20260823T043405Z-2m8c6r37/low_price_review_decisions.csv `
-  --baseline-decisions-path data/ml/smoke-250/ml-dataset-v1.0.2/cleaning_decisions.csv `
-  --baseline-artifact ml-dataset-v1.0.2 `
-  --artifact-version ml-dataset-v1.0.3 `
-  --output-dir data/ml/smoke-250 `
+```bash
+laptop-scraper freeze-ml-dataset \
+  --run-id 20260823T043405Z-2m8c6r37 \
+  --config config/ml_freeze.yaml \
+  --output-dir data/ml/smoke-250 \
+  --review-decisions reviews/ml_freeze/20260823T043405Z-2m8c6r37/low_price_review_decisions.csv \
+  --baseline-decisions data/ml/smoke-250/ml-dataset-v1.0.2/cleaning_decisions.csv \
+  --baseline-artifact ml-dataset-v1.0.2 \
+  --artifact-version ml-dataset-v1.0.3 \
   --strict
 ```
 
@@ -65,9 +76,9 @@ Classify semantic eligibility, exclude down payments and standalone component/ac
 
 Run automated test suite and linter checks:
 
-```powershell
-.venv\Scripts\python.exe -m pytest -v
-.venv\Scripts\ruff.exe check src tests scripts
+```bash
+pytest -v
+ruff check src tests scripts
 ```
 
 ---
@@ -76,10 +87,10 @@ Run automated test suite and linter checks:
 
 Bundle Parquet and CSV files, audit ledgers, metadata, and Kaggle Dataset Card into `kaggle/release/v1.0.3/`:
 
-```powershell
-.venv\Scripts\python.exe scripts/prepare_kaggle_release.py `
-  --source-dir data/ml/smoke-250/ml-dataset-v1.0.3 `
-  --output-dir kaggle/release/v1.0.3 `
+```bash
+python scripts/prepare_kaggle_release.py \
+  --source-dir data/ml/smoke-250/ml-dataset-v1.0.3 \
+  --output-dir kaggle/release/v1.0.3 \
   --dataset-id YOUR_KAGGLE_USERNAME/tokopedia-laptop-market-dataset
 ```
 
@@ -89,17 +100,17 @@ Bundle Parquet and CSV files, audit ledgers, metadata, and Kaggle Dataset Card i
 
 Publish dataset release using Kaggle CLI helper:
 
-```powershell
+```bash
 # Create new dataset
-.venv\Scripts\python.exe scripts/publish_kaggle.py `
-  --release-dir kaggle/release/v1.0.3 `
-  --new `
+python scripts/publish_kaggle.py \
+  --release-dir kaggle/release/v1.0.3 \
+  --new \
   --owner YOUR_KAGGLE_USERNAME
 
 # Update existing dataset version
-.venv\Scripts\python.exe scripts/publish_kaggle.py `
-  --release-dir kaggle/release/v1.0.3 `
-  --notes "Release v1.0.3 - Tokopedia Laptop ML Dataset" `
+python scripts/publish_kaggle.py \
+  --release-dir kaggle/release/v1.0.3 \
+  --notes "Release v1.0.3 - Tokopedia Laptop ML Dataset" \
   --owner YOUR_KAGGLE_USERNAME
 ```
 
