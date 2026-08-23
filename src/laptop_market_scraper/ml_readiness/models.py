@@ -110,3 +110,15 @@ class MissingnessResult(BaseModel):
     cases: tuple[MissingnessCase, ...]
 
 
+class CompleteCaseResult(BaseModel):
+    representation_id: str
+    required_features: tuple[str, ...]
+    total_rows: int
+    complete_rows: int
+    dropped_rows: int
+    retention_percent: float
+    dropped_percent: float
+    complete_listing_keys: tuple[str, ...]
+
+
+
