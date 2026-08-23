@@ -22,6 +22,7 @@ from laptop_market_scraper.parsers.state import (
     extract_state_candidates,
     score_candidates,
 )
+from laptop_market_scraper.pipeline import ProductionPipeline
 from laptop_market_scraper.quality import export_quality_report, generate_quality_report
 from laptop_market_scraper.spiders.tokopedia_laptop import TokopediaLaptopSpider
 from laptop_market_scraper.storage import SQLiteStore
@@ -315,6 +316,41 @@ def audit_features_cmd(
         raise typer.Exit(code=1)
 
 
+@app.command("production-run")
+def production_run_cmd(
+    production_config: Path = typer.Option(
+        Path("config/production.yaml"), "--production-config", help="Production pipeline config YAML"
+    ),
+    seed_config: Path = typer.Option(
+        Path("config/seeds.yaml"), "--seed-config", help="Search seeds config YAML"
+    ),
+    crawl_dir: Path = typer.Option(
+        Path("crawl_state/production"), "--crawl-dir", help="Output directory for crawl state"
+    ),
+    run_id: str | None = typer.Option(
+        None, "--run-id", help="Custom run ID (or auto-generated timestamp)"
+    ),
+    resume: bool = typer.Option(
+        True, "--resume", help="Resume from last completed pipeline stage"
+    ),
+    skip_audit: bool = typer.Option(
+        False, "--skip-audit", help="Skip feature audit stage"
+    ),
+) -> None:
+    """Execute the full end-to-end production dataset pipeline."""
+    pipeline = ProductionPipeline(
+        production_config_path=production_config,
+        seed_config_path=seed_config,
+        crawl_dir=crawl_dir,
+        run_id=run_id,
+        resume=resume,
+        skip_audit=skip_audit,
+    )
+    state = pipeline.run()
+    typer.echo(f"Production pipeline run completed: run_id={state.run_id}, stage={state.stage.value}")
+
+
 if __name__ == "__main__":
     app()
+
 

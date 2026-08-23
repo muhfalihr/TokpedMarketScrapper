@@ -28,16 +28,33 @@ def get_contract_sha256(contract_path: str | Path = "config/search_product_v5_co
     return hasher.hexdigest()
 
 
+def get_file_sha256(path: str | Path) -> str:
+    """Retrieve SHA256 hex digest of a file, or 'unknown' if file does not exist."""
+    p = Path(path)
+    if not p.exists():
+        return "unknown"
+    try:
+        hasher = hashlib.sha256()
+        hasher.update(p.read_bytes())
+        return hasher.hexdigest()
+    except OSError:
+        return "unknown"
+
+
 def generate_manifest(
     *,
     contract_path: str | Path = "config/search_product_v5_contract.json",
     seed_config: str | Path = "config/seeds.yaml",
+    production_config: str | Path | None = "config/production.yaml",
     started_at: datetime | str | None = None,
     finished_at: datetime | str | None = None,
     seed_queries: list[str] | None = None,
     observed_total_data_min: int | None = None,
     observed_total_data_max: int | None = None,
     crawl_run_id: str | None = None,
+    pipeline_meta: dict[str, Any] | None = None,
+    acquisition_meta: dict[str, Any] | None = None,
+    feature_audit_meta: dict[str, Any] | None = None,
     extra_data: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Generate reproducibility manifest data dict."""
@@ -105,6 +122,34 @@ def generate_manifest(
 
     if crawl_run_id:
         manifest_data["crawl_run_id"] = crawl_run_id
+
+    if pipeline_meta is not None:
+        p_meta = dict(pipeline_meta)
+        if (
+            "target_reached" not in p_meta
+            and "actual_unique_eligible" in p_meta
+            and "target_unique_eligible" in p_meta
+        ):
+            p_meta["target_reached"] = (
+                p_meta["actual_unique_eligible"] >= p_meta["target_unique_eligible"]
+            )
+        manifest_data["pipeline"] = p_meta
+
+    if acquisition_meta is not None:
+        manifest_data["acquisition"] = acquisition_meta
+    elif pipeline_meta is not None or (production_config and Path(production_config).exists()):
+        acq_data = {
+            "tag": "dataset-acquisition-v1.0",
+            "commit": git_commit,
+            "contract_sha256": contract_sha256,
+            "seed_config_sha256": get_file_sha256(seed_config),
+        }
+        if production_config:
+            acq_data["production_config_sha256"] = get_file_sha256(production_config)
+        manifest_data["acquisition"] = acq_data
+
+    if feature_audit_meta is not None:
+        manifest_data["feature_audit"] = feature_audit_meta
 
     if extra_data:
         manifest_data.update(extra_data)
