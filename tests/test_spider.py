@@ -36,8 +36,8 @@ async def test_start_requests_yields_from_seeds(spider):
         requests = [r async for r in spider.start_requests()]
         assert len(requests) == 1
         req = requests[0]
-        assert req.method == "POST"
-        assert "searchProductV5" in req.url
+        assert req._session_kwargs.get("method") == "POST"
+        assert "SearchProductV5" in req.url
         assert req.callback == spider.parse_search_page
 
 
@@ -173,7 +173,7 @@ async def test_parse_product_saves_accepted_product(spider, mock_store):
 
     assert len(results) == 1
     normalized = results[0]
-    assert normalized.product_name == "ASUS Vivobook Laptop 14"
+    assert normalized["product_name"] == "ASUS Vivobook Laptop 14"
     mock_store.save.assert_called_once()
     assert spider.items_scraped == 1
 

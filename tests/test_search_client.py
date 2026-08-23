@@ -22,7 +22,7 @@ def sample_contract():
 
 def test_graphql_url_constant():
     """Verify GRAPHQL_URL constant points to correct Tokopedia GraphQL search endpoint."""
-    assert GRAPHQL_URL == "https://gql.tokopedia.com/graphql/searchProductV5"
+    assert GRAPHQL_URL == "https://gql.tokopedia.com/graphql/SearchProductV5Query"
 
 
 def test_build_search_params_page_one():

@@ -161,6 +161,8 @@ def test_export_discoveries_csv(store: SQLiteStore, tmp_path: Path):
         "category_sc",
         "sort_code",
         "observed_total_data",
+        "product_name",
+        "category_breadcrumb",
         "discovered_at",
     ]
     assert list(df.columns) == expected_cols

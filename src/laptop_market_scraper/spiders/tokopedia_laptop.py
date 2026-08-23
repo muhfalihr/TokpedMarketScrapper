@@ -164,6 +164,8 @@ class TokopediaLaptopSpider(Spider):
                     category_sc=category_sc,
                     sort_code=sort_code,
                     observed_total_data=search_page.total_data,
+                    product_name=getattr(product, "name", None),
+                    category_breadcrumb=getattr(product.category, "breadcrumb", None) if getattr(product, "category", None) else None,
                 )
 
             # 2. Evaluate laptop eligibility
@@ -359,6 +361,6 @@ class TokopediaLaptopSpider(Spider):
         else:
             self.items_scraped += 1
 
-        yield normalized
+        yield normalized.model_dump()
 
     parse_product = parse_product_page

@@ -58,13 +58,23 @@ def _extract_breadcrumb_and_name(product: SearchProduct | dict[str, Any] | Any) 
             breadcrumb = cat
 
         if not breadcrumb:
-            bc = product.get("breadcrumb") or product.get("breadcrumbs")
+            bc = (
+                product.get("breadcrumb")
+                or product.get("breadcrumbs")
+                or product.get("category_breadcrumb")
+            )
             if isinstance(bc, str):
                 breadcrumb = bc
             elif isinstance(bc, (tuple, list)):
                 breadcrumb = "/".join(bc)
 
-        name = product.get("name") or product.get("title") or product.get("product_name_raw") or ""
+        name = (
+            product.get("name")
+            or product.get("title")
+            or product.get("product_name_raw")
+            or product.get("product_name")
+            or ""
+        )
     else:
         breadcrumb = getattr(getattr(product, "category", None), "breadcrumb", None) or getattr(product, "breadcrumb", "") or ""
         name = getattr(product, "name", None) or getattr(product, "title", None) or ""

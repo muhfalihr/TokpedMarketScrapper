@@ -17,7 +17,7 @@ def test_load_search_contract_valid():
     contract = load_search_contract(CONTRACT_PATH)
 
     assert isinstance(contract, SearchContract)
-    assert contract.operation_name == "searchProductV5"
+    assert contract.operation_name == "SearchProductV5Query"
     assert "query SearchProductV5Query" in contract.query
     assert len(contract.sha256) == 64
 

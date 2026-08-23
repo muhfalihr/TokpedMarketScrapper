@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 
 from laptop_market_scraper.clients.search_contract import SearchContract
 
-GRAPHQL_URL = "https://gql.tokopedia.com/graphql/searchProductV5"
+GRAPHQL_URL = "https://gql.tokopedia.com/graphql/SearchProductV5Query"
 
 
 def build_search_params(

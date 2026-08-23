@@ -137,28 +137,31 @@ def generate_quality_report(
     observed_total_data_min = min(observed_total_data_values) if observed_total_data_values else None
     observed_total_data_max = max(observed_total_data_values) if observed_total_data_values else None
 
-    report_dict = {
-        "search_pages_fetched": search_pages_fetched,
-        "search_results_seen": search_results_seen,
-        "eligible_laptop_count": eligible_laptop_count,
-        "rejected_non_laptop_count": rejected_non_laptop_count,
-        "eligibility_rate": eligibility_rate,
-        "duplicate_discovery_count": duplicate_discovery_count,
-        "unique_listing_count": unique_listing_count,
-        "eligibility_rate_by_query": dict(eligibility_rate_by_query),
-        "accepted_count_by_query": dict(accepted_count_by_query),
-        "rejected_count_by_query": dict(rejected_count_by_query),
-        "accepted_count_by_breadcrumb": dict(accepted_count_by_breadcrumb),
-        "rejected_count_by_breadcrumb": dict(rejected_count_by_breadcrumb),
-        "observed_total_data_min": observed_total_data_min,
-        "observed_total_data_max": observed_total_data_max,
-    }
-
+    out_dict = {}
     if store and run_id:
         coverage_report = build_quality_report(run_id, store)
-        report_dict.update(coverage_report.model_dump())
+        out_dict.update(coverage_report.model_dump())
 
-    return report_dict
+    out_dict.update(
+        {
+            "search_pages_fetched": search_pages_fetched,
+            "search_results_seen": search_results_seen,
+            "eligible_laptop_count": eligible_laptop_count,
+            "rejected_non_laptop_count": rejected_non_laptop_count,
+            "eligibility_rate": eligibility_rate,
+            "duplicate_discovery_count": duplicate_discovery_count,
+            "unique_listing_count": unique_listing_count,
+            "eligibility_rate_by_query": dict(eligibility_rate_by_query),
+            "accepted_count_by_query": dict(accepted_count_by_query),
+            "rejected_count_by_query": dict(rejected_count_by_query),
+            "accepted_count_by_breadcrumb": dict(accepted_count_by_breadcrumb),
+            "rejected_count_by_breadcrumb": dict(rejected_count_by_breadcrumb),
+            "observed_total_data_min": observed_total_data_min,
+            "observed_total_data_max": observed_total_data_max,
+        }
+    )
+
+    return out_dict
 
 
 def export_quality_report(crawl_dir: Path | str, data: dict[str, Any]) -> Path:

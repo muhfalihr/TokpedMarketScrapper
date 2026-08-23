@@ -50,6 +50,8 @@ CREATE TABLE IF NOT EXISTS product_discoveries (
     category_sc TEXT NOT NULL,
     sort_code TEXT NOT NULL,
     observed_total_data INTEGER,
+    product_name TEXT,
+    category_breadcrumb TEXT,
     discovered_at TEXT NOT NULL,
     PRIMARY KEY (
         crawl_run_id,
@@ -137,6 +139,14 @@ class SQLiteStore:
         self._data_dir = Path(data_dir) if data_dir else self._db_path.parent
         self._conn = sqlite3.connect(str(self._db_path))
         self._conn.executescript(_SCHEMA)
+        try:
+            self._conn.execute("ALTER TABLE product_discoveries ADD COLUMN product_name TEXT")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            self._conn.execute("ALTER TABLE product_discoveries ADD COLUMN category_breadcrumb TEXT")
+        except sqlite3.OperationalError:
+            pass
 
     def save(self, product: NormalizedProduct) -> bool:
         """Save a normalized product. Returns True if new, False if duplicate."""
@@ -245,6 +255,8 @@ class SQLiteStore:
         category_sc: str,
         sort_code: str,
         observed_total_data: int | None = None,
+        product_name: str | None = None,
+        category_breadcrumb: str | None = None,
         discovered_at: str | None = None,
     ) -> None:
         """Record search discovery provenance.
@@ -269,8 +281,10 @@ class SQLiteStore:
                 category_sc,
                 sort_code,
                 observed_total_data,
+                product_name,
+                category_breadcrumb,
                 discovered_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 crawl_run_id,
@@ -284,6 +298,8 @@ class SQLiteStore:
                 category_sc,
                 sort_code,
                 observed_total_data,
+                product_name,
+                category_breadcrumb,
                 discovered_at,
             ),
         )
@@ -327,6 +343,8 @@ class SQLiteStore:
             "category_sc",
             "sort_code",
             "observed_total_data",
+            "product_name",
+            "category_breadcrumb",
             "discovered_at",
         ]
 
@@ -334,7 +352,7 @@ class SQLiteStore:
             """\
             SELECT crawl_run_id, listing_key, source_query, seed_kind, search_page,
                    search_start, search_rows, search_rank, category_sc, sort_code,
-                   observed_total_data, discovered_at
+                   observed_total_data, product_name, category_breadcrumb, discovered_at
             FROM product_discoveries
             WHERE crawl_run_id = ?
             """,
@@ -352,7 +370,7 @@ class SQLiteStore:
                 """\
                 SELECT crawl_run_id, listing_key, source_query, seed_kind, search_page,
                        search_start, search_rows, search_rank, category_sc, sort_code,
-                       observed_total_data, discovered_at
+                       observed_total_data, product_name, category_breadcrumb, discovered_at
                 FROM product_discoveries
                 WHERE crawl_run_id = ?
                 """,
@@ -363,7 +381,7 @@ class SQLiteStore:
                 """\
                 SELECT crawl_run_id, listing_key, source_query, seed_kind, search_page,
                        search_start, search_rows, search_rank, category_sc, sort_code,
-                       observed_total_data, discovered_at
+                       observed_total_data, product_name, category_breadcrumb, discovered_at
                 FROM product_discoveries
                 """
             ).fetchall()
@@ -380,6 +398,8 @@ class SQLiteStore:
             "category_sc",
             "sort_code",
             "observed_total_data",
+            "product_name",
+            "category_breadcrumb",
             "discovered_at",
         ]
         return [dict(zip(cols, r)) for r in rows]
