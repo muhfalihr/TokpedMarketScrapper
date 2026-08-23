@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 import pytest
 
@@ -188,5 +189,54 @@ def test_engine_default_config_loading(tmp_path: Path, sample_products: list[Nor
     assert "price" in report.distributions
     assert report.provenance.git_commit == "unknown"
     assert report.provenance.acquisition_tag == "dataset-acquisition-v1.0"
+
+    store.close()
+
+
+def test_realistic_readiness_fixture_preserves_all_source_rows(tmp_path: Path):
+    fixture_path = Path(__file__).parent / "fixtures" / "ml_readiness" / "expected_cases.json"
+    with open(fixture_path, "r", encoding="utf-8") as f:
+        cases = json.load(f)
+
+    db_path = tmp_path / "test.db"
+    raw_jsonl_path = tmp_path / "products.jsonl"
+    store = SQLiteStore(db_path)
+    run_id = "run_20260823_130000"
+
+    with open(raw_jsonl_path, "w", encoding="utf-8") as jsonl_file:
+        for case in cases:
+            listing_key = case["listing_key"]
+            price = case["price"]
+            rating = case["rating"]
+            review_count = case["review_count"]
+
+            prod = NormalizedProduct(
+                crawl_run_id=run_id,
+                scraped_at="2026-08-23T13:00:00Z",
+                product_name=f"Laptop {listing_key}",
+                product_url=f"https://tokopedia.com/product/{listing_key}",
+                canonical_url=f"https://tokopedia.com/product/{listing_key}",
+                product_id=listing_key,
+                listing_key=listing_key,
+                price=price,
+                rating=rating,
+                review_count=review_count,
+            )
+            store.save(prod)
+            jsonl_file.write(prod.model_dump_json() + "\n")
+
+    report = run_ml_readiness_audit(
+        run_id=run_id,
+        store=store,
+        raw_jsonl_path=raw_jsonl_path,
+    )
+
+    assert report.dataset_rows == 6
+    assert report.complete_cases["R1"].complete_rows == 4
+    assert report.complete_cases["R2"].complete_rows == 3
+
+    extreme_prices = {obs.price for obs in report.extreme_prices}
+    assert 3600.0 in extreme_prices
+    assert 189999008.0 in extreme_prices
 
     store.close()

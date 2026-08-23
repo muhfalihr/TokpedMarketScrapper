@@ -1,0 +1,38 @@
+[
+  {
+    "listing_key": "normal-1",
+    "price": 15000000,
+    "rating": 4.9,
+    "review_count": 15
+  },
+  {
+    "listing_key": "no-rating",
+    "price": 12000000,
+    "rating": null,
+    "review_count": 0
+  },
+  {
+    "listing_key": "no-reviews",
+    "price": 18000000,
+    "rating": 5.0,
+    "review_count": null
+  },
+  {
+    "listing_key": "missing-both",
+    "price": 10000000,
+    "rating": null,
+    "review_count": null
+  },
+  {
+    "listing_key": "low-price",
+    "price": 3600,
+    "rating": 4.5,
+    "review_count": 2
+  },
+  {
+    "listing_key": "high-price",
+    "price": 189999008,
+    "rating": 4.8,
+    "review_count": 1
+  }
+]
