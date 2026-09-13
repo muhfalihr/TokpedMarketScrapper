@@ -1,8 +1,16 @@
-"""K-Means clustering pipeline for Tokopedia laptop market data."""
+import os
+import warnings
+warnings.filterwarnings("ignore")
+os.environ.setdefault("LOKY_MAX_CPU_COUNT", str(os.cpu_count() or 4))
 
-from __future__ import annotations
+try:
+    import joblib.externals.loky.backend.context as _loky_ctx
+    _loky_ctx._count_physical_cores = lambda: (os.cpu_count() or 4, None)
+except Exception:
+    pass
 
 from pathlib import Path
+
 import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
