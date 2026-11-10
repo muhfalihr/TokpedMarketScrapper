@@ -1,6 +1,6 @@
 # End-to-End Pipeline Guide: From Crawl to Kaggle Push
 
-Panduan alur kerja lengkap (End-to-End Workflow) repositori **Tokped-Scrapper** menggunakan CLI `laptop-scraper` mulai dari pengambilan data (*crawling/scraping*), pembersihan dataset (*ML Freeze & Audit*), hingga publikasi rilis ke **Kaggle Datasets**.
+Panduan alur kerja lengkap (End-to-End Workflow) repositori **TokpedMarketScrapper** menggunakan CLI `laptop-scraper` mulai dari pengambilan data (*crawling/scraping*), pembersihan dataset (*ML Freeze & Audit*), hingga publikasi rilis ke **Kaggle Datasets**.
 
 ---
 
@@ -114,5 +114,5 @@ python scripts/publish_kaggle.py \
 
 Jika tidak menggunakan Kaggle CLI:
 1. Buka [https://www.kaggle.com/datasets](https://www.kaggle.com/datasets) lalu klik **+ New Dataset**.
-2. Upload seluruh file dari folder [`kaggle/release/v1.0.3/`](file:///D:/CLASS%20UPH/MACHINE-LEARNING/REPOS/Tokped-Scrapper/kaggle/release/v1.0.3/).
-3. Copy isi file [`kaggle/release/v1.0.3/README.md`](file:///D:/CLASS%20UPH/MACHINE-LEARNING/REPOS/Tokped-Scrapper/kaggle/release/v1.0.3/README.md) ke kolom deskripsi **About Dataset**.
+2. Upload seluruh file dari folder [`kaggle/release/v1.0.3/`](file:///D:/CLASS%20UPH/MACHINE-LEARNING/REPOS/TokpedMarketScrapper/kaggle/release/v1.0.3/).
+3. Copy isi file [`kaggle/release/v1.0.3/README.md`](file:///D:/CLASS%20UPH/MACHINE-LEARNING/REPOS/TokpedMarketScrapper/kaggle/release/v1.0.3/README.md) ke kolom deskripsi **About Dataset**.
