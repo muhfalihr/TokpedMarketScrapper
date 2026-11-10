@@ -10,7 +10,7 @@ from typing import Any
 import pytest
 from scrapling.parser import Adaptor
 
-from laptop_market_scraper.parsers.listing import (
+from tokped_market_scrapper.parsers.listing import (
     ListingDiagnostics,
     ListingPageData,
     _extract_dom_next_page,

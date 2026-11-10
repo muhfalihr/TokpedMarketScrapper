@@ -2,12 +2,12 @@
 
 import pandas as pd
 
-from laptop_market_scraper.ml_freeze.render import (
+from tokped_market_scrapper.ml_freeze.render import (
     build_decision_diff,
     render_release_signoff,
 )
-from laptop_market_scraper.ml_freeze.review_gate import LowPriceReviewGateResult
-from laptop_market_scraper.ml_freeze.validate import FreezeValidationResult
+from tokped_market_scrapper.ml_freeze.review_gate import LowPriceReviewGateResult
+from tokped_market_scrapper.ml_freeze.validate import FreezeValidationResult
 
 
 def test_decision_diff_records_explicit_artifact_versions():

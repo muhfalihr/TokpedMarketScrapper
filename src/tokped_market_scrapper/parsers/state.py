@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 from scrapling.parser import Adaptor
 
-from laptop_market_scraper.url_utils import is_tokopedia_product_url
+from tokped_market_scrapper.url_utils import is_tokopedia_product_url
 
 logger = logging.getLogger(__name__)
 

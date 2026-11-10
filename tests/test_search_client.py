@@ -5,8 +5,8 @@ from urllib.parse import parse_qsl
 
 import pytest
 
-from laptop_market_scraper.clients.search_contract import load_search_contract
-from laptop_market_scraper.clients.tokopedia_search import (
+from tokped_market_scrapper.clients.search_contract import load_search_contract
+from tokped_market_scrapper.clients.tokopedia_search import (
     GRAPHQL_URL,
     build_search_params,
     build_search_payload,

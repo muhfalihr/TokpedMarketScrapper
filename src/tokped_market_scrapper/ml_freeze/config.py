@@ -3,7 +3,7 @@ from typing import Any
 
 import yaml
 
-from laptop_market_scraper.ml_freeze.models import (
+from tokped_market_scrapper.ml_freeze.models import (
     FreezeEligibilityConfig,
     FreezeOutputsConfig,
     FreezeRepresentation,

@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from laptop_market_scraper.ml_readiness.models import (
+from tokped_market_scrapper.ml_readiness.models import (
     MLReadinessReport,
     RepresentationStatus,
 )

@@ -2,7 +2,7 @@ import itertools
 
 import pandas as pd
 
-from laptop_market_scraper.ml_readiness.models import (
+from tokped_market_scrapper.ml_readiness.models import (
     REQUIRED_FEATURES,
     AssociationResult,
 )

@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from laptop_market_scraper.models import SearchProduct
+from tokped_market_scrapper.models import SearchProduct
 
 ALLOWED_BREADCRUMB_PREFIXES: tuple[str, ...] = ("komputer-laptop/laptop/",)
 ALLOWED_BREADCRUMB_EXACT: set[str] = {"komputer-laptop/pc-laptop-gaming/laptop-gaming"}

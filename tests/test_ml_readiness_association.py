@@ -2,11 +2,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from laptop_market_scraper.ml_readiness.association import (
+from tokped_market_scrapper.ml_readiness.association import (
     analyze_associations,
     audit_associations,
 )
-from laptop_market_scraper.ml_readiness.models import AssociationResult
+from tokped_market_scrapper.ml_readiness.models import AssociationResult
 
 
 def test_spearman_detects_monotonic_relation():

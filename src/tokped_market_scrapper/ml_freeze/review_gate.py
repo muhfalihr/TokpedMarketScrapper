@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from laptop_market_scraper.ml_freeze.models import LowPriceReviewDecision, ManualReviewStatus
+from tokped_market_scrapper.ml_freeze.models import LowPriceReviewDecision, ManualReviewStatus
 
 
 @dataclass(frozen=True)

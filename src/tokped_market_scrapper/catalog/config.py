@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-from laptop_market_scraper.catalog.models import CatalogSeedConfig
+from tokped_market_scrapper.catalog.models import CatalogSeedConfig
 
 
 def load_catalog_seed_config(config_path: str | Path = "config/catalog_seeds.yaml") -> CatalogSeedConfig:

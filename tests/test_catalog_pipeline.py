@@ -6,15 +6,15 @@ from pathlib import Path
 
 import pytest
 
-from laptop_market_scraper.catalog.config import load_catalog_seed_config
-from laptop_market_scraper.catalog.enrich import extract_pdp_metrics_from_html
-from laptop_market_scraper.catalog.models import (
+from tokped_market_scrapper.catalog.config import load_catalog_seed_config
+from tokped_market_scrapper.catalog.enrich import extract_pdp_metrics_from_html
+from tokped_market_scrapper.catalog.models import (
     CRAWLER_VERSION,
     CatalogProduct,
     CatalogSeedConfig,
     EnrichmentResult,
 )
-from laptop_market_scraper.catalog.store import EXPORT_COLUMNS, CatalogStore
+from tokped_market_scrapper.catalog.store import EXPORT_COLUMNS, CatalogStore
 
 RUN_ID = "20260101T000000Z-test0001"
 

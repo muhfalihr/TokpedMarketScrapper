@@ -1,6 +1,6 @@
 
-from laptop_market_scraper.audit.models import FeatureRegistryEntry, ReliabilityStatus
-from laptop_market_scraper.audit.registry import (
+from tokped_market_scrapper.audit.models import FeatureRegistryEntry, ReliabilityStatus
+from tokped_market_scrapper.audit.registry import (
     CANDIDATE_FEATURES,
     FEATURE_REGISTRY,
     get_feature_registry_entry,

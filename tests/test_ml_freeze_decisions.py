@@ -1,13 +1,13 @@
 """Tests for cleaning decision ledger (Task 6)."""
 
-from laptop_market_scraper.ml_freeze.decisions import build_cleaning_decision
-from laptop_market_scraper.ml_freeze.eligibility import EligibilityAssessment
-from laptop_market_scraper.ml_freeze.models import (
+from tokped_market_scrapper.ml_freeze.decisions import build_cleaning_decision
+from tokped_market_scrapper.ml_freeze.eligibility import EligibilityAssessment
+from tokped_market_scrapper.ml_freeze.models import (
     EligibilityDecision,
     EligibilityReason,
     ReviewCountSemanticStatus,
 )
-from laptop_market_scraper.ml_freeze.review_semantics import ReviewCountResolution
+from tokped_market_scrapper.ml_freeze.review_semantics import ReviewCountResolution
 
 
 def _valid_eligibility(key: str) -> EligibilityAssessment:

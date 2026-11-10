@@ -1,6 +1,6 @@
 """Unit tests for production capacity/yield preflight module."""
 
-from laptop_market_scraper.pipeline.preflight import (
+from tokped_market_scrapper.pipeline.preflight import (
     CandidateBudgetEstimate,
     ProductionPreflightReport,
     estimate_candidate_budget,

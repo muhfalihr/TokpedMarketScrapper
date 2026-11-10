@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from laptop_market_scraper.audit import NumericFeatureStats, calculate_numeric_stats
+from tokped_market_scrapper.audit import NumericFeatureStats, calculate_numeric_stats
 
 
 def test_calculate_numeric_stats_basic():

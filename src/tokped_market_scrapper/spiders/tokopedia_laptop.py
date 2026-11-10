@@ -7,16 +7,16 @@ from typing import Any, ClassVar
 
 from scrapling.spiders import Request, Spider
 
-from laptop_market_scraper.clients.search_contract import load_search_contract
-from laptop_market_scraper.clients.tokopedia_search import GRAPHQL_URL, build_search_payload
-from laptop_market_scraper.config import load_search_config, load_seeds
-from laptop_market_scraper.eligibility import evaluate_laptop_eligibility, is_laptop_candidate
-from laptop_market_scraper.models import ListingSeed
-from laptop_market_scraper.parsers.listing import parse_listing_page
-from laptop_market_scraper.parsers.product import parse_product
-from laptop_market_scraper.parsers.search_api import parse_search_response
-from laptop_market_scraper.storage import SQLiteStore, normalize_product
-from laptop_market_scraper.url_utils import (
+from tokped_market_scrapper.clients.search_contract import load_search_contract
+from tokped_market_scrapper.clients.tokopedia_search import GRAPHQL_URL, build_search_payload
+from tokped_market_scrapper.config import load_search_config, load_seeds
+from tokped_market_scrapper.eligibility import evaluate_laptop_eligibility, is_laptop_candidate
+from tokped_market_scrapper.models import ListingSeed
+from tokped_market_scrapper.parsers.listing import parse_listing_page
+from tokped_market_scrapper.parsers.product import parse_product
+from tokped_market_scrapper.parsers.search_api import parse_search_response
+from tokped_market_scrapper.storage import SQLiteStore, normalize_product
+from tokped_market_scrapper.url_utils import (
     build_page_url,
     canonicalize_product_url,
     listing_fingerprint,

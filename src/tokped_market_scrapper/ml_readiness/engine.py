@@ -1,21 +1,21 @@
 from datetime import UTC, datetime
 from pathlib import Path
 
-from laptop_market_scraper.ml_readiness.association import analyze_associations
-from laptop_market_scraper.ml_readiness.complete_cases import analyze_all_representations
-from laptop_market_scraper.ml_readiness.distributions import analyze_all_distributions
-from laptop_market_scraper.ml_readiness.extremes import detect_extreme_prices
-from laptop_market_scraper.ml_readiness.integrity import audit_dataset_integrity
-from laptop_market_scraper.ml_readiness.loader import load_readiness_dataset
-from laptop_market_scraper.ml_readiness.missingness import analyze_missingness
-from laptop_market_scraper.ml_readiness.models import (
+from tokped_market_scrapper.ml_readiness.association import analyze_associations
+from tokped_market_scrapper.ml_readiness.complete_cases import analyze_all_representations
+from tokped_market_scrapper.ml_readiness.distributions import analyze_all_distributions
+from tokped_market_scrapper.ml_readiness.extremes import detect_extreme_prices
+from tokped_market_scrapper.ml_readiness.integrity import audit_dataset_integrity
+from tokped_market_scrapper.ml_readiness.loader import load_readiness_dataset
+from tokped_market_scrapper.ml_readiness.missingness import analyze_missingness
+from tokped_market_scrapper.ml_readiness.models import (
     AuditProvenance,
     MLReadinessConfig,
     MLReadinessReport,
     load_ml_readiness_config,
 )
-from laptop_market_scraper.ml_readiness.representations import evaluate_all_representations
-from laptop_market_scraper.storage import SQLiteStore
+from tokped_market_scrapper.ml_readiness.representations import evaluate_all_representations
+from tokped_market_scrapper.storage import SQLiteStore
 
 
 def run_ml_readiness_audit(

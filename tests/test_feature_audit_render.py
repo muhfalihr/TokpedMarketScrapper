@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from laptop_market_scraper.audit import (
+from tokped_market_scrapper.audit import (
     DatasetIntegrityReport,
     FeatureAuditReport,
     FeatureAuditResult,

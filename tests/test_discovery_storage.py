@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from laptop_market_scraper.storage import MarketStorage, SQLiteStore
+from tokped_market_scrapper.storage import MarketStorage, SQLiteStore
 
 
 @pytest.fixture

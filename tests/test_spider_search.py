@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from scrapling.parser import Adaptor
 
-from laptop_market_scraper.spiders.tokopedia_laptop import (
+from tokped_market_scrapper.spiders.tokopedia_laptop import (
     GRAPHQL_URL,
     TokopediaLaptopSpider,
 )

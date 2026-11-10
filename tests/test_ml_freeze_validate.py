@@ -2,16 +2,16 @@
 
 import pandas as pd
 
-from laptop_market_scraper.ml_freeze.decisions import build_cleaning_decision
-from laptop_market_scraper.ml_freeze.eligibility import EligibilityAssessment
-from laptop_market_scraper.ml_freeze.matrices import FrozenMatrices
-from laptop_market_scraper.ml_freeze.models import (
+from tokped_market_scrapper.ml_freeze.decisions import build_cleaning_decision
+from tokped_market_scrapper.ml_freeze.eligibility import EligibilityAssessment
+from tokped_market_scrapper.ml_freeze.matrices import FrozenMatrices
+from tokped_market_scrapper.ml_freeze.models import (
     EligibilityDecision,
     EligibilityReason,
     ReviewCountSemanticStatus,
 )
-from laptop_market_scraper.ml_freeze.review_semantics import ReviewCountResolution
-from laptop_market_scraper.ml_freeze.validate import validate_frozen_matrices
+from tokped_market_scrapper.ml_freeze.review_semantics import ReviewCountResolution
+from tokped_market_scrapper.ml_freeze.validate import validate_frozen_matrices
 
 
 def _setup_valid_fixture():
@@ -184,7 +184,7 @@ def test_validator_rejects_non_unique_listing_keys():
 
 
 def test_strict_finalization_fails_when_low_price_review_is_incomplete():
-    from laptop_market_scraper.ml_freeze.review_gate import LowPriceReviewGateResult
+    from tokped_market_scrapper.ml_freeze.review_gate import LowPriceReviewGateResult
 
     source_products, matrices, decisions = _setup_valid_fixture()
     gate = LowPriceReviewGateResult(

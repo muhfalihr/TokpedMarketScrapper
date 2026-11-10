@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from laptop_market_scraper.ml_readiness import (
+from tokped_market_scrapper.ml_readiness import (
     IntegrityResult,
     ReadinessDataset,
     audit_dataset_integrity,

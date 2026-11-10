@@ -2,7 +2,7 @@
 
 from typer.testing import CliRunner
 
-from laptop_market_scraper.cli import app
+from tokped_market_scrapper.cli import app
 
 runner = CliRunner()
 

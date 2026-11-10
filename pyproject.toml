@@ -24,7 +24,7 @@ dev = [
 tokped-scraper = "tokped_market_scrapper.cli:app"
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = [".", "src"]
 testpaths = ["tests"]
 
 [tool.ruff.lint]

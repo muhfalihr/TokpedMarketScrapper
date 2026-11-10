@@ -4,9 +4,9 @@ from datetime import UTC, datetime
 
 import pytest
 
-from laptop_market_scraper.models import NormalizedProduct
-from laptop_market_scraper.quality import build_quality_report
-from laptop_market_scraper.storage import SQLiteStore
+from tokped_market_scrapper.models import NormalizedProduct
+from tokped_market_scrapper.quality import build_quality_report
+from tokped_market_scrapper.storage import SQLiteStore
 
 
 @pytest.fixture
@@ -59,7 +59,7 @@ def test_quality_report_computes_price_coverage(populated_store):
 
 
 def test_generate_quality_report_aggregates_search_metrics():
-    from laptop_market_scraper.quality import generate_quality_report
+    from tokped_market_scrapper.quality import generate_quality_report
 
     mock_discoveries = [
         {
@@ -112,7 +112,7 @@ def test_generate_quality_report_aggregates_search_metrics():
 def test_export_quality_report(tmp_path):
     import json
 
-    from laptop_market_scraper.quality import export_quality_report
+    from tokped_market_scrapper.quality import export_quality_report
 
     data = {"search_pages_fetched": 5, "eligibility_rate": 0.8}
     out_path = export_quality_report(tmp_path, data)

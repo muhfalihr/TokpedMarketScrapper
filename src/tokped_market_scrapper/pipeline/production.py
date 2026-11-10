@@ -9,24 +9,24 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from laptop_market_scraper.audit import audit_features, export_feature_audit
-from laptop_market_scraper.manifest import (
+from tokped_market_scrapper.audit import audit_features, export_feature_audit
+from tokped_market_scrapper.manifest import (
     generate_manifest,
     get_contract_sha256,
     get_file_sha256,
     write_manifest,
 )
-from laptop_market_scraper.pipeline.preflight import run_production_preflight
-from laptop_market_scraper.pipeline.state import (
+from tokped_market_scrapper.pipeline.preflight import run_production_preflight
+from tokped_market_scrapper.pipeline.state import (
     PipelineStage,
     PipelineState,
     load_pipeline_state,
     load_production_config,
     save_pipeline_state,
 )
-from laptop_market_scraper.quality import export_quality_report, generate_quality_report
-from laptop_market_scraper.spiders.tokopedia_laptop import TokopediaLaptopSpider
-from laptop_market_scraper.storage import SQLiteStore
+from tokped_market_scrapper.quality import export_quality_report, generate_quality_report
+from tokped_market_scrapper.spiders.tokopedia_laptop import TokopediaLaptopSpider
+from tokped_market_scrapper.storage import SQLiteStore
 
 logger = logging.getLogger(__name__)
 

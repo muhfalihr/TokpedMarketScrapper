@@ -6,9 +6,9 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from laptop_market_scraper.ml_freeze.freeze import freeze_ml_dataset
-from laptop_market_scraper.models import NormalizedProduct
-from laptop_market_scraper.storage import SQLiteStore
+from tokped_market_scrapper.ml_freeze.freeze import freeze_ml_dataset
+from tokped_market_scrapper.models import NormalizedProduct
+from tokped_market_scrapper.storage import SQLiteStore
 
 
 @pytest.fixture
@@ -162,7 +162,7 @@ def test_freeze_excludes_lcd_panel(freeze_env):
 
 
 def test_finalization_does_not_change_representation_contracts():
-    from laptop_market_scraper.ml_freeze.config import load_ml_freeze_config
+    from tokped_market_scrapper.ml_freeze.config import load_ml_freeze_config
 
     config = load_ml_freeze_config("config/ml_freeze.yaml")
     assert config.representations["R1"].features == ("price", "rating")
@@ -170,7 +170,7 @@ def test_finalization_does_not_change_representation_contracts():
 
 
 def test_v1_0_1_to_v1_0_2_diff_has_correct_net_exclusion_change():
-    from laptop_market_scraper.ml_freeze.render import build_decision_diff
+    from tokped_market_scrapper.ml_freeze.render import build_decision_diff
 
     baseline_v1_0_1_df = pd.read_csv("tests/fixtures/ml_freeze/baseline_v1_0_1_decisions.csv")
     current_v1_0_2_df = pd.read_csv("data/ml/smoke-250/ml-dataset-v1.0.2/cleaning_decisions.csv")

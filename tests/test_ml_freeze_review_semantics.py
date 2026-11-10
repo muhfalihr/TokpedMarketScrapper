@@ -1,8 +1,8 @@
 """Tests for review_count semantic reconciliation (Task 5)."""
 
-from laptop_market_scraper.ml_freeze.config import load_ml_freeze_config
-from laptop_market_scraper.ml_freeze.models import ReviewCountSemanticStatus
-from laptop_market_scraper.ml_freeze.review_semantics import resolve_review_count
+from tokped_market_scrapper.ml_freeze.config import load_ml_freeze_config
+from tokped_market_scrapper.ml_freeze.models import ReviewCountSemanticStatus
+from tokped_market_scrapper.ml_freeze.review_semantics import resolve_review_count
 
 _CONFIG = load_ml_freeze_config("config/ml_freeze.yaml")
 

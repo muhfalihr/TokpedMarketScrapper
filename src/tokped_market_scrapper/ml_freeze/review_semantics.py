@@ -12,7 +12,7 @@ from typing import Any
 import pandas as pd
 from pydantic import BaseModel
 
-from laptop_market_scraper.ml_freeze.models import (
+from tokped_market_scrapper.ml_freeze.models import (
     MLFreezeConfig,
     ReviewCountSemanticStatus,
 )

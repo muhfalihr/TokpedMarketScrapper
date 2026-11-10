@@ -4,7 +4,7 @@ from typing import Any
 import yaml
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from laptop_market_scraper.models import SearchSeed
+from tokped_market_scrapper.models import SearchSeed
 
 
 class AppSettings(BaseSettings):

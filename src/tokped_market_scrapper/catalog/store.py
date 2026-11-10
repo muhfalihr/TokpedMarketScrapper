@@ -13,7 +13,7 @@ from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from laptop_market_scraper.catalog.models import (
+from tokped_market_scrapper.catalog.models import (
     CRAWLER_VERSION,
     SORT_LABELS,
     CatalogProduct,

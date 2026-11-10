@@ -3,16 +3,16 @@ from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
-from laptop_market_scraper.audit.models import (
+from tokped_market_scrapper.audit.models import (
     DatasetIntegrityReport,
     FeatureAuditReport,
     FeatureAuditResult,
     FeatureSuitability,
     ReliabilityStatus,
 )
-from laptop_market_scraper.audit.registry import CANDIDATE_FEATURES, FEATURE_REGISTRY
-from laptop_market_scraper.audit.statistics import calculate_numeric_stats
-from laptop_market_scraper.storage import SQLiteStore
+from tokped_market_scrapper.audit.registry import CANDIDATE_FEATURES, FEATURE_REGISTRY
+from tokped_market_scrapper.audit.statistics import calculate_numeric_stats
+from tokped_market_scrapper.storage import SQLiteStore
 
 
 def classify_suitability(

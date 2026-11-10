@@ -1,11 +1,11 @@
-from laptop_market_scraper.pipeline.preflight import (
+from tokped_market_scrapper.pipeline.preflight import (
     CandidateBudgetEstimate,
     ProductionPreflightReport,
     estimate_candidate_budget,
     run_production_preflight,
 )
-from laptop_market_scraper.pipeline.production import ProductionPipeline
-from laptop_market_scraper.pipeline.state import (
+from tokped_market_scrapper.pipeline.production import ProductionPipeline
+from tokped_market_scrapper.pipeline.state import (
     PipelineStage,
     PipelineState,
     ProductionConfig,

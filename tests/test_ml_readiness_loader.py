@@ -3,9 +3,9 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from laptop_market_scraper.ml_readiness import ReadinessDataset, load_readiness_dataset
-from laptop_market_scraper.models import NormalizedProduct
-from laptop_market_scraper.storage import SQLiteStore
+from tokped_market_scrapper.ml_readiness import ReadinessDataset, load_readiness_dataset
+from tokped_market_scrapper.models import NormalizedProduct
+from tokped_market_scrapper.storage import SQLiteStore
 
 
 @pytest.fixture

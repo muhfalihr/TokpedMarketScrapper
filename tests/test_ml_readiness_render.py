@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from laptop_market_scraper.ml_readiness import (
+from tokped_market_scrapper.ml_readiness import (
     AssociationConfig,
     ExtremesConfig,
     MLReadinessConfig,
@@ -12,8 +12,8 @@ from laptop_market_scraper.ml_readiness import (
     run_ml_readiness_audit,
     write_ml_readiness_artifacts,
 )
-from laptop_market_scraper.models import NormalizedProduct
-from laptop_market_scraper.storage import SQLiteStore
+from tokped_market_scrapper.models import NormalizedProduct
+from tokped_market_scrapper.storage import SQLiteStore
 
 
 def create_sample_config() -> MLReadinessConfig:

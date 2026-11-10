@@ -2,7 +2,7 @@
 
 from collections.abc import Mapping, Sequence
 
-from laptop_market_scraper.ml_readiness.models import (
+from tokped_market_scrapper.ml_readiness.models import (
     AssociationResult,
     CompleteCaseResult,
     DistributionResult,

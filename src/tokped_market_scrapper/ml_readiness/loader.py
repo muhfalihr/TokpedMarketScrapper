@@ -6,7 +6,7 @@ from typing import Any
 
 import pandas as pd
 
-from laptop_market_scraper.storage import SQLiteStore
+from tokped_market_scrapper.storage import SQLiteStore
 
 
 @dataclass(frozen=True)

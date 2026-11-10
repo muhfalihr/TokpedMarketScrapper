@@ -1,6 +1,6 @@
 import pytest
 
-from laptop_market_scraper.ml_readiness.models import (
+from tokped_market_scrapper.ml_readiness.models import (
     AssociationConfig,
     AssociationResult,
     CompleteCaseResult,
@@ -16,7 +16,7 @@ from laptop_market_scraper.ml_readiness.models import (
     RepresentationStatus,
     TransformationSignal,
 )
-from laptop_market_scraper.ml_readiness.representations import (
+from tokped_market_scrapper.ml_readiness.representations import (
     evaluate_all_representations,
     evaluate_representation,
 )

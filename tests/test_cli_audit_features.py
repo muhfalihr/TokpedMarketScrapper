@@ -6,9 +6,9 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from laptop_market_scraper.cli import app
-from laptop_market_scraper.models import NormalizedProduct
-from laptop_market_scraper.storage import SQLiteStore
+from tokped_market_scrapper.cli import app
+from tokped_market_scrapper.models import NormalizedProduct
+from tokped_market_scrapper.storage import SQLiteStore
 
 runner = CliRunner()
 

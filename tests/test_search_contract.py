@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from laptop_market_scraper.clients.search_contract import SearchContract, load_search_contract
+from tokped_market_scrapper.clients.search_contract import SearchContract, load_search_contract
 
 CONTRACT_PATH = Path("config/search_product_v5_contract.json")
 

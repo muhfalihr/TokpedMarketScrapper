@@ -7,11 +7,11 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from laptop_market_scraper.eligibility import (
+from tokped_market_scrapper.eligibility import (
     _extract_breadcrumb_and_name,
     evaluate_laptop_eligibility,
 )
-from laptop_market_scraper.storage import SQLiteStore
+from tokped_market_scrapper.storage import SQLiteStore
 
 
 class QualityReport(BaseModel):

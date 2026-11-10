@@ -12,13 +12,13 @@ from typing import Any, ClassVar
 
 from scrapling.spiders import Request, Spider
 
-from laptop_market_scraper.catalog.config import load_catalog_seed_config
-from laptop_market_scraper.catalog.models import CatalogProduct
-from laptop_market_scraper.catalog.store import CatalogStore
-from laptop_market_scraper.clients.search_contract import load_search_contract
-from laptop_market_scraper.clients.tokopedia_search import GRAPHQL_URL, build_search_payload
-from laptop_market_scraper.parsers.search_api import parse_search_response
-from laptop_market_scraper.url_utils import canonicalize_product_url, search_page_fingerprint
+from tokped_market_scrapper.catalog.config import load_catalog_seed_config
+from tokped_market_scrapper.catalog.models import CatalogProduct
+from tokped_market_scrapper.catalog.store import CatalogStore
+from tokped_market_scrapper.clients.search_contract import load_search_contract
+from tokped_market_scrapper.clients.tokopedia_search import GRAPHQL_URL, build_search_payload
+from tokped_market_scrapper.parsers.search_api import parse_search_response
+from tokped_market_scrapper.url_utils import canonicalize_product_url, search_page_fingerprint
 
 logger = logging.getLogger(__name__)
 

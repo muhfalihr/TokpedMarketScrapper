@@ -7,8 +7,8 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from laptop_market_scraper.ml_freeze.models import CleaningDecision
-from laptop_market_scraper.ml_freeze.review_semantics import ReviewCountResolution
+from tokped_market_scrapper.ml_freeze.models import CleaningDecision
+from tokped_market_scrapper.ml_freeze.review_semantics import ReviewCountResolution
 
 
 @dataclass(frozen=True)

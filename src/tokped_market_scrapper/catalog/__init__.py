@@ -1,6 +1,6 @@
 """Multi-category catalog collection pipeline (searchProductV5 collect + PDP enrichment)."""
 
-from laptop_market_scraper.catalog.models import (
+from tokped_market_scrapper.catalog.models import (
     CatalogProduct,
     CatalogSeedConfig,
     CatalogTask,

@@ -1,7 +1,7 @@
 
 import pytest
 
-from laptop_market_scraper.url_utils import (
+from tokped_market_scrapper.url_utils import (
     build_page_url,
     canonicalize_product_url,
     is_tokopedia_product_url,

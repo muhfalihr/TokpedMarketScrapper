@@ -9,8 +9,8 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from laptop_market_scraper.ml_freeze.matrices import FrozenMatrices
-from laptop_market_scraper.ml_freeze.models import (
+from tokped_market_scrapper.ml_freeze.matrices import FrozenMatrices
+from tokped_market_scrapper.ml_freeze.models import (
     CleaningDecision,
     EligibilityDecision,
     MLFreezeConfig,

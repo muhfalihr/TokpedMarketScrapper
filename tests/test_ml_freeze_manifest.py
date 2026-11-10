@@ -3,17 +3,17 @@
 import pandas as pd
 import pytest
 
-from laptop_market_scraper.ml_freeze.config import load_ml_freeze_config
-from laptop_market_scraper.ml_freeze.decisions import build_cleaning_decision
-from laptop_market_scraper.ml_freeze.eligibility import EligibilityAssessment
-from laptop_market_scraper.ml_freeze.manifest import build_ml_dataset_manifest
-from laptop_market_scraper.ml_freeze.matrices import FrozenMatrices
-from laptop_market_scraper.ml_freeze.models import (
+from tokped_market_scrapper.ml_freeze.config import load_ml_freeze_config
+from tokped_market_scrapper.ml_freeze.decisions import build_cleaning_decision
+from tokped_market_scrapper.ml_freeze.eligibility import EligibilityAssessment
+from tokped_market_scrapper.ml_freeze.manifest import build_ml_dataset_manifest
+from tokped_market_scrapper.ml_freeze.matrices import FrozenMatrices
+from tokped_market_scrapper.ml_freeze.models import (
     EligibilityDecision,
     EligibilityReason,
     ReviewCountSemanticStatus,
 )
-from laptop_market_scraper.ml_freeze.review_semantics import ReviewCountResolution
+from tokped_market_scrapper.ml_freeze.review_semantics import ReviewCountResolution
 
 _CONFIG = load_ml_freeze_config("config/ml_freeze.yaml")
 
@@ -85,7 +85,7 @@ def test_manifest_records_provenance(sample_manifest):
 
 
 def test_manifest_hashes_low_price_review_decisions(tmp_path):
-    from laptop_market_scraper.ml_freeze.review_gate import LowPriceReviewGateResult
+    from tokped_market_scrapper.ml_freeze.review_gate import LowPriceReviewGateResult
 
     review_file = tmp_path / "low_price_review_decisions.csv"
     review_file.write_text("listing_key,review_status,review_note\nk1,APPROVED_VALID,Note\n")

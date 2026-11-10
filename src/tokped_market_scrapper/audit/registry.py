@@ -1,4 +1,4 @@
-from laptop_market_scraper.audit.models import FeatureRegistryEntry, ReliabilityStatus
+from tokped_market_scrapper.audit.models import FeatureRegistryEntry, ReliabilityStatus
 
 CANDIDATE_FEATURES: tuple[str, ...] = (
     "price",

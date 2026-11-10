@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
 
-from laptop_market_scraper.cli import app
+from tokped_market_scrapper.cli import app
 
 runner = CliRunner()
 
@@ -83,7 +83,7 @@ def test_inspect_listing_mocked_http_url():
     mock_resp.body = content_bytes
     mock_resp.text = content_str
 
-    with patch("laptop_market_scraper.cli.Fetcher.get", return_value=mock_resp) as mock_get:
+    with patch("tokped_market_scrapper.cli.Fetcher.get", return_value=mock_resp) as mock_get:
         result = runner.invoke(app, ["inspect-listing", "https://www.tokopedia.com/search?q=laptop"])
 
         assert result.exit_code == 0
@@ -103,7 +103,7 @@ def test_inspect_listing_nonexistent_file():
 
 def test_inspect_listing_http_fetch_error():
     with patch(
-        "laptop_market_scraper.cli.Fetcher.get",
+        "tokped_market_scrapper.cli.Fetcher.get",
         side_effect=RuntimeError("Connection refused by server"),
     ):
         result = runner.invoke(app, ["inspect-listing", "https://www.tokopedia.com/search?q=laptop"])

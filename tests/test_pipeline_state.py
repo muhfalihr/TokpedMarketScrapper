@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from laptop_market_scraper.pipeline.state import (
+from tokped_market_scrapper.pipeline.state import (
     PipelineStage,
     PipelineState,
     ProductionConfig,

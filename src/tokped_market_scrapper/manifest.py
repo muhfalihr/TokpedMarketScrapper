@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from laptop_market_scraper.config import load_search_config, load_seeds
+from tokped_market_scrapper.config import load_search_config, load_seeds
 
 
 def get_contract_sha256(contract_path: str | Path = "config/search_product_v5_contract.json") -> str:

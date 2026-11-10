@@ -1,6 +1,6 @@
 import pytest
 
-from laptop_market_scraper.normalization import (
+from tokped_market_scrapper.normalization import (
     normalize_count,
     normalize_idr,
     normalize_percent,

@@ -1,11 +1,11 @@
 import pytest
 
-from laptop_market_scraper.eligibility import (
+from tokped_market_scrapper.eligibility import (
     EligibilityResult,
     evaluate_laptop_eligibility,
     is_laptop_candidate,
 )
-from laptop_market_scraper.models import SearchCategory, SearchProduct
+from tokped_market_scrapper.models import SearchCategory, SearchProduct
 
 
 @pytest.fixture

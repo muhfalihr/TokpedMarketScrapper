@@ -12,7 +12,7 @@ from typing import Any
 
 from scrapling.parser import Adaptor
 
-from laptop_market_scraper.models import ListingSeed, RawProduct
+from tokped_market_scrapper.models import ListingSeed, RawProduct
 
 
 def extract_jsonld_product(response: Adaptor) -> dict[str, Any] | None:

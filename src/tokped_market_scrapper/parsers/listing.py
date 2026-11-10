@@ -6,7 +6,7 @@ from urllib.parse import parse_qs, urljoin, urlparse
 
 from scrapling.parser import Adaptor
 
-from laptop_market_scraper.parsers.state import (
+from tokped_market_scrapper.parsers.state import (
     TokopediaListingStateAdapter,
     _find_tokopedia_listing_container,
     _to_adaptor,
@@ -15,7 +15,7 @@ from laptop_market_scraper.parsers.state import (
     extract_state_candidates,
     score_candidates,
 )
-from laptop_market_scraper.url_utils import (
+from tokped_market_scrapper.url_utils import (
     build_page_url,
     is_tokopedia_product_url,
     listing_fingerprint,

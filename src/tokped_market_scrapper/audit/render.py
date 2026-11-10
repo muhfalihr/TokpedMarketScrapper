@@ -3,7 +3,7 @@
 from enum import Enum
 from pathlib import Path
 
-from laptop_market_scraper.audit.models import (
+from tokped_market_scrapper.audit.models import (
     FeatureAuditReport,
     FeatureSuitability,
 )

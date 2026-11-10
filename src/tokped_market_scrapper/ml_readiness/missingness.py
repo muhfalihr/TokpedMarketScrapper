@@ -3,8 +3,8 @@ from typing import Any
 
 import pandas as pd
 
-from laptop_market_scraper.ml_readiness.loader import ReadinessDataset
-from laptop_market_scraper.ml_readiness.models import (
+from tokped_market_scrapper.ml_readiness.loader import ReadinessDataset
+from tokped_market_scrapper.ml_readiness.models import (
     MissingnessCase,
     MissingnessResult,
     MissingSemanticStatus,

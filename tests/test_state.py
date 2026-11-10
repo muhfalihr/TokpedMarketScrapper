@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from scrapling.parser import Adaptor
 
-from laptop_market_scraper.parsers.state import (
+from tokped_market_scrapper.parsers.state import (
     CandidateScore,
     StateCandidate,
     StateListingResult,

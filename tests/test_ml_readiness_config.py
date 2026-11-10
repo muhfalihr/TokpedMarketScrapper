@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from laptop_market_scraper.ml_readiness import (
+from tokped_market_scrapper.ml_readiness import (
     AssociationConfig,
     ExtremesConfig,
     MLReadinessConfig,

@@ -5,7 +5,7 @@ import re
 from collections.abc import Mapping
 from typing import Any
 
-from laptop_market_scraper.models import SearchCategory, SearchPage, SearchProduct
+from tokped_market_scrapper.models import SearchCategory, SearchPage, SearchProduct
 
 logger = logging.getLogger(__name__)
 

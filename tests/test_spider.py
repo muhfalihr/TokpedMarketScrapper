@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from scrapling.parser import Adaptor
 
-from laptop_market_scraper.parsers.listing import ListingDiagnostics, ListingPageData
-from laptop_market_scraper.spiders.tokopedia_laptop import TokopediaLaptopSpider
+from tokped_market_scrapper.parsers.listing import ListingDiagnostics, ListingPageData
+from tokped_market_scrapper.spiders.tokopedia_laptop import TokopediaLaptopSpider
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
 
@@ -26,7 +26,7 @@ def spider(mock_store):
 
 @pytest.mark.asyncio
 async def test_start_requests_yields_from_seeds(spider):
-    with patch("laptop_market_scraper.spiders.tokopedia_laptop.load_seeds") as mock_load:
+    with patch("tokped_market_scrapper.spiders.tokopedia_laptop.load_seeds") as mock_load:
         mock_seed = MagicMock()
         mock_seed.query = "laptop"
         mock_seed.kind = "generic"
@@ -91,7 +91,7 @@ async def test_parse_listing_calls_parse_listing_page_once(spider):
     )
 
     with patch(
-        "laptop_market_scraper.spiders.tokopedia_laptop.parse_listing_page",
+        "tokped_market_scrapper.spiders.tokopedia_laptop.parse_listing_page",
         return_value=mock_page_data,
     ) as mock_parser:
         results = [r async for r in spider.parse_listing(response)]
@@ -257,7 +257,7 @@ async def test_spider_stops_pagination_on_self_referential_url(mock_store):
     resp.meta = {"source_url": "https://www.tokopedia.com/search?page=2", "source_page": 2}
 
     with patch(
-        "laptop_market_scraper.spiders.tokopedia_laptop.parse_listing_page",
+        "tokped_market_scrapper.spiders.tokopedia_laptop.parse_listing_page",
         return_value=mock_page_data,
     ):
         results = [r async for r in spider.parse_listing(resp)]
@@ -286,7 +286,7 @@ async def test_spider_respects_max_pages_limit(mock_store):
     resp_1.meta = {"source_url": "https://www.tokopedia.com/search?page=1", "source_page": 1}
 
     with patch(
-        "laptop_market_scraper.spiders.tokopedia_laptop.parse_listing_page",
+        "tokped_market_scrapper.spiders.tokopedia_laptop.parse_listing_page",
         return_value=mock_page_data_1,
     ):
         results_1 = [r async for r in spider.parse_listing(resp_1)]
@@ -308,7 +308,7 @@ async def test_spider_respects_max_pages_limit(mock_store):
     resp_2.meta = {"source_url": "https://www.tokopedia.com/search?page=2", "source_page": 2}
 
     with patch(
-        "laptop_market_scraper.spiders.tokopedia_laptop.parse_listing_page",
+        "tokped_market_scrapper.spiders.tokopedia_laptop.parse_listing_page",
         return_value=mock_page_data_2,
     ):
         results_2 = [r async for r in spider.parse_listing(resp_2)]
@@ -335,7 +335,7 @@ async def test_spider_stops_pagination_when_has_next_page_is_false(mock_store):
     resp.meta = {"source_url": "https://www.tokopedia.com/search?page=10", "source_page": 10}
 
     with patch(
-        "laptop_market_scraper.spiders.tokopedia_laptop.parse_listing_page",
+        "tokped_market_scrapper.spiders.tokopedia_laptop.parse_listing_page",
         return_value=mock_page_data,
     ):
         results = [r async for r in spider.parse_listing(resp)]

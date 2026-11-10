@@ -2,12 +2,12 @@
 
 import pytest
 
-from laptop_market_scraper.ml_freeze.config import load_ml_freeze_config
-from laptop_market_scraper.ml_freeze.eligibility import (
+from tokped_market_scrapper.ml_freeze.config import load_ml_freeze_config
+from tokped_market_scrapper.ml_freeze.eligibility import (
     EligibilityAssessment,
     assess_ml_eligibility,
 )
-from laptop_market_scraper.ml_freeze.models import EligibilityDecision, EligibilityReason
+from tokped_market_scrapper.ml_freeze.models import EligibilityDecision, EligibilityReason
 
 _CONFIG = load_ml_freeze_config("config/ml_freeze.yaml")
 

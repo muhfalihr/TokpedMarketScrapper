@@ -4,13 +4,13 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from laptop_market_scraper.models import (
+from tokped_market_scrapper.models import (
     SearchCategory,
     SearchPage,
     SearchProduct,
     SearchSeed,
 )
-from laptop_market_scraper.parsers.search_api import (
+from tokped_market_scrapper.parsers.search_api import (
     SearchGraphQLError,
     SearchSchemaError,
     parse_idr_price,

@@ -14,14 +14,14 @@ from typing import Any
 
 import pandas as pd
 
-from laptop_market_scraper.models import FeatureProvenance, NormalizedProduct, RawProduct
-from laptop_market_scraper.normalization import (
+from tokped_market_scrapper.models import FeatureProvenance, NormalizedProduct, RawProduct
+from tokped_market_scrapper.normalization import (
     normalize_count,
     normalize_idr,
     normalize_percent,
     normalize_rating,
 )
-from laptop_market_scraper.url_utils import canonicalize_product_url, make_listing_key
+from tokped_market_scrapper.url_utils import canonicalize_product_url, make_listing_key
 
 _SCHEMA = """\
 CREATE TABLE IF NOT EXISTS products (

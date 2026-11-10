@@ -3,8 +3,8 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from laptop_market_scraper.ml_freeze.config import load_ml_freeze_config
-from laptop_market_scraper.ml_freeze.models import (
+from tokped_market_scrapper.ml_freeze.config import load_ml_freeze_config
+from tokped_market_scrapper.ml_freeze.models import (
     CleaningDecision,
     EligibilityDecision,
     EligibilityReason,

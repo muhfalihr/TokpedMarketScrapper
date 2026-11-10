@@ -4,7 +4,7 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
-from laptop_market_scraper.manifest import generate_manifest, write_manifest
+from tokped_market_scrapper.manifest import generate_manifest, write_manifest
 
 
 def test_generate_manifest_contains_required_contract_details():

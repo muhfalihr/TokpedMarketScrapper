@@ -11,9 +11,9 @@ from collections.abc import Sequence
 import pandas as pd
 from pydantic import BaseModel
 
-from laptop_market_scraper.ml_freeze.matrices import FrozenMatrices
-from laptop_market_scraper.ml_freeze.models import CleaningDecision, EligibilityDecision
-from laptop_market_scraper.ml_freeze.review_gate import LowPriceReviewGateResult
+from tokped_market_scrapper.ml_freeze.matrices import FrozenMatrices
+from tokped_market_scrapper.ml_freeze.models import CleaningDecision, EligibilityDecision
+from tokped_market_scrapper.ml_freeze.review_gate import LowPriceReviewGateResult
 
 
 class FreezeValidationResult(BaseModel):

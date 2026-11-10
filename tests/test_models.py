@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 
-from laptop_market_scraper.models import NormalizedProduct
+from tokped_market_scrapper.models import NormalizedProduct
 
 
 def test_normalized_product_rejects_invalid_rating():

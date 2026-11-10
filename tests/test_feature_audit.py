@@ -3,14 +3,14 @@ import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
-from laptop_market_scraper.audit.engine import audit_features, classify_suitability
-from laptop_market_scraper.audit.models import (
+from tokped_market_scrapper.audit.engine import audit_features, classify_suitability
+from tokped_market_scrapper.audit.models import (
     FeatureAuditReport,
     FeatureSuitability,
     ReliabilityStatus,
 )
-from laptop_market_scraper.models import NormalizedProduct
-from laptop_market_scraper.storage import SQLiteStore
+from tokped_market_scrapper.models import NormalizedProduct
+from tokped_market_scrapper.storage import SQLiteStore
 
 
 def test_classify_suitability_unusable():

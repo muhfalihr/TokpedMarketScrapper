@@ -1,4 +1,4 @@
-from laptop_market_scraper.config import AppSettings, load_search_config, load_seeds
+from tokped_market_scrapper.config import AppSettings, load_search_config, load_seeds
 
 
 def test_app_settings_loads_env_vars(monkeypatch):

@@ -8,8 +8,8 @@ from typing import Any
 
 import pandas as pd
 
-from laptop_market_scraper.ml_freeze.models import CleaningDecision, EligibilityDecision
-from laptop_market_scraper.ml_freeze.review_semantics import ReviewCountResolution
+from tokped_market_scrapper.ml_freeze.models import CleaningDecision, EligibilityDecision
+from tokped_market_scrapper.ml_freeze.review_semantics import ReviewCountResolution
 
 
 def build_decision_diff(

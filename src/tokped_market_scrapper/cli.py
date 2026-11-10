@@ -8,33 +8,33 @@ from pathlib import Path
 import typer
 from scrapling import Fetcher
 
-from laptop_market_scraper.audit import (
+from tokped_market_scrapper.audit import (
     FeatureSuitability,
     audit_features,
     export_feature_audit,
 )
-from laptop_market_scraper.catalog.enrich import CatalogEnrichSpider
-from laptop_market_scraper.catalog.spider import CatalogCollectSpider
-from laptop_market_scraper.catalog.store import CatalogStore
-from laptop_market_scraper.manifest import generate_manifest, write_manifest
-from laptop_market_scraper.ml_freeze import freeze_ml_dataset
-from laptop_market_scraper.ml_readiness import (
+from tokped_market_scrapper.catalog.enrich import CatalogEnrichSpider
+from tokped_market_scrapper.catalog.spider import CatalogCollectSpider
+from tokped_market_scrapper.catalog.store import CatalogStore
+from tokped_market_scrapper.manifest import generate_manifest, write_manifest
+from tokped_market_scrapper.ml_freeze import freeze_ml_dataset
+from tokped_market_scrapper.ml_readiness import (
     load_ml_readiness_config,
     run_ml_readiness_audit,
     write_ml_readiness_artifacts,
 )
-from laptop_market_scraper.parsers.listing import parse_listing_page
-from laptop_market_scraper.parsers.state import (
+from tokped_market_scrapper.parsers.listing import parse_listing_page
+from tokped_market_scrapper.parsers.state import (
     FLIGHT_MARKER,
     _to_adaptor,
     detect_flight_marker,
     extract_state_candidates,
     score_candidates,
 )
-from laptop_market_scraper.pipeline import ProductionPipeline
-from laptop_market_scraper.quality import export_quality_report, generate_quality_report
-from laptop_market_scraper.spiders.tokopedia_laptop import TokopediaLaptopSpider
-from laptop_market_scraper.storage import SQLiteStore
+from tokped_market_scrapper.pipeline import ProductionPipeline
+from tokped_market_scrapper.quality import export_quality_report, generate_quality_report
+from tokped_market_scrapper.spiders.tokopedia_laptop import TokopediaLaptopSpider
+from tokped_market_scrapper.storage import SQLiteStore
 
 app = typer.Typer(help="Tokopedia Laptop Research Dataset Crawler")
 

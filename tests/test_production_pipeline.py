@@ -5,9 +5,9 @@ from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
 
-from laptop_market_scraper.cli import app
-from laptop_market_scraper.manifest import generate_manifest, write_manifest
-from laptop_market_scraper.pipeline import (
+from tokped_market_scrapper.cli import app
+from tokped_market_scrapper.manifest import generate_manifest, write_manifest
+from tokped_market_scrapper.pipeline import (
     PipelineStage,
     PipelineState,
     ProductionPipeline,
@@ -84,7 +84,7 @@ def test_production_pipeline_executes_all_stages(tmp_path: Path):
         skip_audit=False,
     )
 
-    with patch("laptop_market_scraper.pipeline.production.TokopediaLaptopSpider") as mock_spider_cls:
+    with patch("tokped_market_scrapper.pipeline.production.TokopediaLaptopSpider") as mock_spider_cls:
         mock_spider = MagicMock()
         mock_spider_cls.return_value = mock_spider
 
@@ -125,7 +125,7 @@ def test_production_pipeline_resumes_from_interrupted_stage(tmp_path: Path):
         skip_audit=True,
     )
 
-    with patch("laptop_market_scraper.pipeline.production.TokopediaLaptopSpider") as mock_spider_cls:
+    with patch("tokped_market_scrapper.pipeline.production.TokopediaLaptopSpider") as mock_spider_cls:
         result_state = pipeline.run()
 
         # Spider should NOT be started because crawl stage was already complete
@@ -144,7 +144,7 @@ def test_production_run_cli(tmp_path: Path):
     prod_config.write_text("production:\n  target_unique_eligible: 50\n", encoding="utf-8")
     seed_config.write_text("search:\n  rows: 60\nseeds:\n  - query: laptop\n", encoding="utf-8")
 
-    with patch("laptop_market_scraper.pipeline.production.TokopediaLaptopSpider"):
+    with patch("tokped_market_scrapper.pipeline.production.TokopediaLaptopSpider"):
         result = runner.invoke(
             app,
             [

@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 from scrapling.parser import Adaptor
 
-from laptop_market_scraper.models import ListingSeed
-from laptop_market_scraper.parsers.product import parse_product
+from tokped_market_scrapper.models import ListingSeed
+from tokped_market_scrapper.parsers.product import parse_product
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
 

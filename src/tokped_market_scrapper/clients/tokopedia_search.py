@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 from urllib.parse import urlencode
 
-from laptop_market_scraper.clients.search_contract import SearchContract
+from tokped_market_scrapper.clients.search_contract import SearchContract
 
 GRAPHQL_URL = "https://gql.tokopedia.com/graphql/SearchProductV5Query"
 

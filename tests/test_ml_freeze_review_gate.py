@@ -6,8 +6,8 @@ import pandas as pd
 import pytest
 from pydantic import ValidationError
 
-from laptop_market_scraper.ml_freeze.models import LowPriceReviewDecision, ManualReviewStatus
-from laptop_market_scraper.ml_freeze.review_gate import (
+from tokped_market_scrapper.ml_freeze.models import LowPriceReviewDecision, ManualReviewStatus
+from tokped_market_scrapper.ml_freeze.review_gate import (
     load_low_price_review_decisions,
     validate_low_price_review_gate,
 )

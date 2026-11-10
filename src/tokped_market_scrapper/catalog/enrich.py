@@ -19,9 +19,9 @@ from typing import Any, ClassVar
 
 from scrapling.spiders import Request, Spider
 
-from laptop_market_scraper.catalog.models import EnrichmentResult
-from laptop_market_scraper.catalog.store import CatalogStore
-from laptop_market_scraper.parsers.search_api import parse_sold_label
+from tokped_market_scrapper.catalog.models import EnrichmentResult
+from tokped_market_scrapper.catalog.store import CatalogStore
+from tokped_market_scrapper.parsers.search_api import parse_sold_label
 
 logger = logging.getLogger(__name__)
 

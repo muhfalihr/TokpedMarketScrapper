@@ -1,6 +1,6 @@
 import pandas as pd
 
-from laptop_market_scraper.ml_readiness import (
+from tokped_market_scrapper.ml_readiness import (
     MissingnessResult,
     MissingSemanticStatus,
     ReadinessDataset,
