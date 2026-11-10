@@ -1,17 +1,17 @@
+import argparse
 import os
 import warnings
+from pathlib import Path
 
 warnings.filterwarnings("ignore")
 os.environ.setdefault("LOKY_MAX_CPU_COUNT", str(os.cpu_count() or 4))
 
 try:
     import joblib.externals.loky.backend.context as _loky_ctx
+
     _loky_ctx._count_physical_cores = lambda: (os.cpu_count() or 4, None)
 except Exception:  # noqa: BLE001, S110 — monkeypatch bersifat opsional (fix loky Windows)
     pass
-
-import sys
-from pathlib import Path
 
 import matplotlib
 import numpy as np
@@ -23,16 +23,47 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 
-# Fitur numerik untuk clustering (sesuai dataset katalog multi-kategori).
-# price/sold/review_count sangat skewed -> transformasi log1p sebelum scaling.
+# Fitur numerik default untuk clustering
 FEATURES = ["price", "rating", "review_count", "sold"]
 SKEWED_FEATURES = ["price", "review_count", "sold"]
 
 
-def find_dataset() -> tuple[pd.DataFrame, str]:
+def compute_bayesian_rating(
+    df: pd.DataFrame,
+    rating_col: str = "rating",
+    review_col: str = "review_count",
+    m: int = 10,
+    c_prior: float | None = None,
+) -> pd.Series:
+    """Hitung Bayesian Weighted Rating (IMDb formula):
+
+        WR = (v / (v + m)) * R + (m / (v + m)) * C
+
+    Mencegah produk cold-start (1 ulasan bintang 5) disamaratakan dengan
+    produk mapan bereputasi tinggi yang memiliki ratusan ulasan bintang 5.
+
+    Args:
+        df: DataFrame input
+        rating_col: Kolom rating
+        review_col: Kolom review count
+        m: Bobot prior (ambang review minimum agar rating mendekati aslinya)
+        c_prior: Rata-rata prior global. Jika None, diambil dari rata-rata produk dengan ulasan memadai.
+    """
+    v = df[review_col].fillna(0).astype(float)
+    R = df[rating_col].fillna(0).astype(float)
+
+    if c_prior is None:
+        established = df[v >= m]
+        c_prior = float(established[rating_col].mean()) if len(established) > 0 else float(R.mean())
+
+    wr = (v / (v + m)) * R + (m / (v + m)) * c_prior
+    return wr
+
+
+def find_dataset(cli_path: str | Path | None = None) -> tuple[pd.DataFrame, str]:
     """Cari dataset hasil catalog-export; fallback ke dataset laptop lama."""
-    if len(sys.argv) > 1:
-        path = Path(sys.argv[1])
+    if cli_path is not None:
+        path = Path(cli_path)
         if path.exists():
             df = pd.read_csv(path)
             return df, str(path)
@@ -66,25 +97,85 @@ def find_dataset() -> tuple[pd.DataFrame, str]:
     )
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="K-Means clustering pada data produk Tokopedia dengan opsi penanganan rating skewness."
+    )
+    parser.add_argument(
+        "csv_path",
+        nargs="?",
+        default=None,
+        help="Path ke file dataset CSV (opsional, default: file terbaru di data/processed/)",
+    )
+    parser.add_argument(
+        "--min-reviews",
+        type=int,
+        default=0,
+        help="Filter produk dengan review_count >= MIN_REVIEWS untuk mengeliminasi cold-start (default: 0)",
+    )
+    parser.add_argument(
+        "--use-weighted-rating",
+        action="store_true",
+        help="Gunakan Bayesian Weighted Rating (IMDb formula) sebagai pengganti raw rating",
+    )
+    parser.add_argument(
+        "--m-prior",
+        type=int,
+        default=10,
+        help="Ambang bobot prior ulasan (m) untuk Bayesian Weighted Rating (default: 10)",
+    )
+    parser.add_argument(
+        "--exclude-rating",
+        action="store_true",
+        help="Keluarkan fitur rating dari proses clustering (hanya gunakan price, sold, review_count)",
+    )
+    return parser.parse_args()
+
+
 def main() -> None:
-    df, source = find_dataset()
+    args = parse_args()
+    df, source = find_dataset(args.csv_path)
     print(f"Dataset: {source} ({len(df)} baris)")
 
-    features = [c for c in FEATURES if c in df.columns]
+    # 1. Filter minimum reviews (opsional)
+    if args.min_reviews > 0 and "review_count" in df.columns:
+        n_before_filter = len(df)
+        df = df[df["review_count"] >= args.min_reviews].reset_index(drop=True)
+        print(
+            f"Filter review_count >= {args.min_reviews}: {len(df)} baris tersisa "
+            f"(disaring {n_before_filter - len(df)} baris cold-start)"
+        )
+
+    # 2. Pemilihan fitur & Bayesian Weighted Rating (opsional)
+    active_features = list(FEATURES)
+    if args.exclude_rating:
+        active_features = [c for c in active_features if c != "rating"]
+        print("Fitur rating dinonaktifkan dari clustering.")
+    elif args.use_weighted_rating and "rating" in df.columns and "review_count" in df.columns:
+        df["weighted_rating"] = compute_bayesian_rating(df, m=args.m_prior)
+        active_features = ["weighted_rating" if c == "rating" else c for c in active_features]
+        print(f"Menggunakan Bayesian Weighted Rating (m={args.m_prior}) sebagai fitur pengganti raw rating.")
+
+    features = [c for c in active_features if c in df.columns]
     skewed = [c for c in SKEWED_FEATURES if c in df.columns]
 
     print("\nNull per fitur:")
     print(df[features].isnull().sum())
 
     n_before = len(df)
-    # price/rating wajib ada; review_count/sold kosong berarti 0 (belum ada review/penjualan)
-    required = [c for c in ("price", "rating") if c in df.columns]
+    # price dan rating/weighted_rating wajib ada; review_count/sold kosong berarti 0
+    required = [c for c in ("price", "rating", "weighted_rating") if c in features]
     df = df.dropna(subset=required).reset_index(drop=True)
     zero_filled = [c for c in features if c not in required]
     for col in zero_filled:
         df[col] = df[col].fillna(0)
-    print(f"\nBaris terpakai: {len(df)} (buang {n_before - len(df)} baris null price/rating; "
-          f"kolom {zero_filled} yang kosong diisi 0)")
+    print(
+        f"\nBaris terpakai: {len(df)} (buang {n_before - len(df)} baris null {required}; "
+        f"kolom {zero_filled} yang kosong diisi 0)"
+    )
+
+    if len(df) < 10:
+        raise SystemExit("Data terlalu sedikit setelah pemfilteran untuk clustering.")
 
     X = df[features].copy()
     for col in skewed:
@@ -94,7 +185,8 @@ def main() -> None:
 
     # Pemilihan K terbaik via silhouette
     results = []
-    for k in range(2, 9):
+    max_k = min(9, len(df))
+    for k in range(2, max_k):
         model = KMeans(n_clusters=k, random_state=42, n_init="auto")
         labels = model.fit_predict(X_scaled)
         sil = silhouette_score(X_scaled, labels)
@@ -128,7 +220,7 @@ def main() -> None:
     print(f"\nHasil clustering disimpan ke: {out_csv}")
 
     # Visualisasi pasangan fitur utama (dalam ruang log-scaled)
-    plot_cols = [c for c in ["price", "rating", "review_count", "sold"] if c in df.columns]
+    plot_cols = list(features)
     n = len(plot_cols)
     fig, axes = plt.subplots(n, n, figsize=(4 * n, 4 * n))
     axes = np.atleast_2d(axes)
@@ -143,8 +235,8 @@ def main() -> None:
                 s=8,
                 alpha=0.6,
             )
-            ax.set_xlabel(f"log1p({xj})" if i == n - 1 else "")
-            ax.set_ylabel(f"log1p({yi})" if j == 0 else "")
+            ax.set_xlabel(f"log1p({xj})" if xj in skewed else xj if i == n - 1 else "")
+            ax.set_ylabel(f"log1p({yi})" if yi in skewed else yi if j == 0 else "")
     fig.suptitle(f"K-Means (K={best_k}) — {len(df)} produk")
     fig.colorbar(scatter, ax=axes, label="cluster", shrink=0.6)
     out_png = out_dir / "clusters.png"

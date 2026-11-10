@@ -4,14 +4,14 @@ Port headless dari bagian inti notebook DBSCAN (Bagian 3, 5, 6, 7, 8):
 skenario prapemrosesan P0-P4, eps via titik lutut k-distance (kneed),
 min_samples = 2 x dimensi, evaluasi indeks internal, dan stabilitas ARI.
 
-Pakai untuk memastikan data hasil catalog-collect/enrich/export layak dipakai
-di notebook Colab sebelum dipush ke repo data tim.
+Mendukung filter ambang review_count dan Bayesian Weighted Rating untuk
+mengatasi rating skewness ekstrem.
 
 Pemakaian:
-    python scripts/dbscan_check.py [path.csv]
+    python scripts/dbscan_check.py [path.csv] [--min-reviews N] [--use-weighted-rating]
 """
 
-import sys
+import argparse
 import warnings
 from itertools import combinations
 from pathlib import Path
@@ -36,8 +36,29 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer, StandardScaler
 
 SEED = 42  # sama dengan notebook; jangan diubah
-FITUR = ["price", "sold", "rating", "review_count"]
-FITUR_LOG = ["price", "sold", "review_count"]
+DEFAULT_FITUR = ["price", "sold", "rating", "review_count"]
+DEFAULT_FITUR_LOG = ["price", "sold", "review_count"]
+
+
+def compute_bayesian_rating(
+    df: pd.DataFrame,
+    rating_col: str = "rating",
+    review_col: str = "review_count",
+    m: int = 10,
+    c_prior: float | None = None,
+) -> pd.Series:
+    """Hitung Bayesian Weighted Rating (IMDb formula):
+
+        WR = (v / (v + m)) * R + (m / (v + m)) * C
+    """
+    v = df[review_col].fillna(0).astype(float)
+    R = df[rating_col].fillna(0).astype(float)
+
+    if c_prior is None:
+        established = df[v >= m]
+        c_prior = float(established[rating_col].mean()) if len(established) > 0 else float(R.mean())
+
+    return (v / (v + m)) * R + (m / (v + m)) * c_prior
 
 
 class Winsorizer(BaseEstimator, TransformerMixin):
@@ -99,9 +120,9 @@ def stabilitas_ari(pipe, X, indeks_sub):
     return float(np.mean(ari)), float(np.std(ari))
 
 
-def find_dataset() -> Path:
-    if len(sys.argv) > 1:
-        path = Path(sys.argv[1])
+def find_dataset(cli_path: str | Path | None = None) -> Path:
+    if cli_path is not None:
+        path = Path(cli_path)
         if path.exists():
             return path
         raise SystemExit(f"Path tidak ditemukan: {path}")
@@ -116,38 +137,89 @@ def find_dataset() -> Path:
     return candidates[-1]
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="DBSCAN evaluation untuk dataset katalog Tokopedia."
+    )
+    parser.add_argument("csv_path", nargs="?", default=None, help="Path ke file dataset CSV (opsional)")
+    parser.add_argument(
+        "--min-reviews",
+        type=int,
+        default=0,
+        help="Filter produk dengan review_count >= MIN_REVIEWS untuk mengeliminasi cold-start (default: 0)",
+    )
+    parser.add_argument(
+        "--use-weighted-rating",
+        action="store_true",
+        help="Gunakan Bayesian Weighted Rating (IMDb formula) sebagai pengganti raw rating",
+    )
+    parser.add_argument(
+        "--m-prior",
+        type=int,
+        default=10,
+        help="Ambang bobot prior ulasan (m) untuk Bayesian Weighted Rating (default: 10)",
+    )
+    parser.add_argument(
+        "--exclude-rating",
+        action="store_true",
+        help="Keluarkan fitur rating dari evaluasi (hanya gunakan price, sold, review_count)",
+    )
+    return parser.parse_args()
+
+
 def main() -> None:
+    args = parse_args()
     np.random.seed(SEED)
-    csv_path = find_dataset()
+    csv_path = find_dataset(args.csv_path)
     df = pd.read_csv(csv_path)
+
+    # Tentukan fitur aktif
+    fitur = list(DEFAULT_FITUR)
+    if args.exclude_rating:
+        fitur = [c for c in fitur if c != "rating"]
+        print("Fitur rating dinonaktifkan.")
+    elif args.use_weighted_rating and "rating" in df.columns and "review_count" in df.columns:
+        df["weighted_rating"] = compute_bayesian_rating(df, m=args.m_prior)
+        fitur = ["weighted_rating" if c == "rating" else c for c in fitur]
+        print(f"Menggunakan Bayesian Weighted Rating (m={args.m_prior}) menggantikan raw rating.")
+
+    fitur_log = [c for c in DEFAULT_FITUR_LOG if c in fitur]
+
+    # Filter review jika ditentukan
+    if args.min_reviews > 0 and "review_count" in df.columns:
+        n_before = len(df)
+        df = df[df["review_count"] >= args.min_reviews].reset_index(drop=True)
+        print(f"Filter review_count >= {args.min_reviews}: {len(df)} baris tersisa (disaring {n_before - len(df)} baris)")
 
     # --- Kontrak data notebook ---
     print(f"Data: {csv_path} — {df.shape[0]} baris, {df.shape[1]} kolom")
-    hilang_kritis = df[FITUR].isna().sum()
-    print("Nilai hilang per fitur (sebelum dropna rating):")
+    hilang_kritis = df[fitur].isna().sum()
+    print("Nilai hilang per fitur:")
     print(hilang_kritis.to_string())
 
     if df["product_id"].duplicated().any():
         raise SystemExit("GAGAL: product_id tidak unik (notebook mem-assert keunikan).")
     if hilang_kritis[["price", "sold"]].sum() > 0:
         print("PERINGATAN: price/sold masih ada NaN — jalankan enrich + --require-enrichment.")
-    if hilang_kritis["review_count"] > 0:
+    if "review_count" in hilang_kritis and hilang_kritis["review_count"] > 0:
         print(
             f"PERINGATAN: {hilang_kritis['review_count']} baris tanpa review_count "
             "(belum ter-enrich). StandardScaler notebook akan error jika tidak difilter. "
             "Disarankan: catalog-export --require-enrichment."
         )
 
-    data = df.dropna(subset=["rating"]).reset_index(drop=True)
-    data = data.dropna(subset=[c for c in FITUR if c != "rating"]).reset_index(drop=True)
+    data = df.dropna(subset=fitur).reset_index(drop=True)
     print(f"Data bersih (dropna fitur): {data.shape[0]} baris")
-    print(f"Proporsi rating tepat 5,0: {data['rating'].eq(5).mean():.3f}")
-    print(f"Skewness: {data[FITUR].skew().round(2).to_dict()}")
+    if "rating" in data.columns:
+        print(f"Proporsi rating tepat 5,0: {data['rating'].eq(5).mean():.3f}")
+    if "weighted_rating" in data.columns:
+        print(f"Mean weighted_rating: {data['weighted_rating'].mean():.3f}, std: {data['weighted_rating'].std():.3f}")
+    print(f"Skewness: {data[fitur].skew().round(2).to_dict()}")
 
     # --- Skenario prapemrosesan (identik notebook) ---
-    X = data[FITUR].astype(float)
+    X = data[fitur].astype(float)
     log_transform = ColumnTransformer(
-        [("log", FunctionTransformer(np.log1p), FITUR_LOG)],
+        [("log", FunctionTransformer(np.log1p), fitur_log)],
         remainder="passthrough",
     )
     skenario = {

@@ -5,13 +5,14 @@
 #        (non-official). Pairing each keyword with both tiers balances the
 #        official/non-official mix that relevance sort would otherwise skew.
 # Each keyword x tier pair paginates up to max_pages_per_task pages of `rows` products.
-# 41 keywords x 2 tiers x N pages x 60 rows (N=1 ~ 4.9k, N=3 ~ 10-15k before dedup).
+# 41 keywords x 2 tiers x N pages x 60 rows (N=1 ~ 4.9k, N=3 ~ 10-15k, N=5 ~ 15-20k before dedup).
+# Menembus halaman 3-5 menangkap variasi produk & rating yang lebih heterogen (tidak hanya 5.0).
 
 search:
   rows: 60
   category_sc: null
   sort_code: "23"          # relevance
-  max_pages_per_task: 2
+  max_pages_per_task: 5
 
 tiers:
   - 2   # Official Store
