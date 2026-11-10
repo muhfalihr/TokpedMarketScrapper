@@ -33,3 +33,7 @@ scripts/test_replay.py
 
 # ZCode session state
 .zcode/
+
+# Generated release artifacts & review ledgers (dibuat ulang oleh scripts/prepare_kaggle_release.py)
+kaggle/
+reviews/
