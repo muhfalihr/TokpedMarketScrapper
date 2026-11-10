@@ -38,6 +38,42 @@ laptop-scraper inspect --run-id <run-id>
 
 ---
 
+## 🛒 Multi-Category Catalog Pipeline (v2)
+
+Replicates the `yusepahmad/data-tokped-pml` reference dataset: fast search-only
+collection across 45+ keywords in all categories, balanced between Official
+Store (`shop_tier=2`) and Gold Merchant (`shop_tier=1`) via the `shop_tier`
+search filter, then PDP enrichment for `review_count` and exact `sold`
+(checkpoint/resume). Produces a 27-column CSV matching the reference schema
+(`tokopedia_products_v2.csv`).
+
+```bash
+# 1. Collect — 45 keywords × 2 tiers × 2 pages ≈ 8–10k unique products (~10 min)
+laptop-scraper catalog-collect --seed-config config/catalog_seeds.yaml --crawl-dir crawl_state/catalog
+
+# 2. Enrich — review_count + sold exact from product pages (rerun to resume; --limit to batch)
+laptop-scraper catalog-enrich --run-id <run-id> --crawl-dir crawl_state/catalog --limit 500
+
+# 3. Export — merged CSV in reference schema.
+#    --require-enrichment menyaring hanya baris yang sudah ter-enrich PDP
+#    (semantik identik dataset referensi: review_count & sold selalu dari halaman produk)
+laptop-scraper catalog-export --run-id <run-id> --crawl-dir crawl_state/catalog --require-enrichment
+
+# 4. Cluster
+python scripts/k_mean.py
+
+# 5. Verifikasi kompatibilitas data untuk notebook DBSCAN Colab
+#    (port headless Bagian 3/5/6/7/8 notebook: skenario P0-P4, eps via kneed, ARI stabilitas)
+python scripts/dbscan_check.py
+```
+
+Smoke-test a subset first: `catalog-collect --keywords "iphone" --max-pages 1`.
+Scale further by adding keywords to `config/catalog_seeds.yaml` or raising
+`max_pages_per_task`; the params builder also supports `pmin`/`pmax` price-band
+slicing for deeper catalog coverage.
+
+---
+
 ## 🔄 End-to-End Pipeline Workflow (Crawl to Kaggle Push)
 
 ### 1. Ingestion & Crawling (Data Acquisition)

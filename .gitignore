@@ -30,3 +30,6 @@ scripts/probe_*.py
 scripts/replay_*.py
 scripts/test_category_filter_param.py
 scripts/test_replay.py
+
+# ZCode session state
+.zcode/

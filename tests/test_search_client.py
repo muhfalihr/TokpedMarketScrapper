@@ -118,3 +118,41 @@ def test_build_search_payload_structure(sample_contract):
     assert params["q"] == "laptop gaming"
     assert params["page"] == "1"
     assert params["start"] == "0"
+
+
+def test_build_search_params_shop_tier():
+    """Verify shop_tier filter is included when provided."""
+    params_str = build_search_params(query="iphone", page=1, category_sc=None, shop_tier=2)
+    params = dict(parse_qsl(params_str))
+    assert params["shop_tier"] == "2"
+
+
+def test_build_search_params_shop_tier_omitted_by_default():
+    """Verify shop_tier is absent when not provided."""
+    params_str = build_search_params(query="iphone", page=1)
+    params = dict(parse_qsl(params_str))
+    assert "shop_tier" not in params
+
+
+def test_build_search_params_price_band():
+    """Verify pmin/pmax price filters are included when provided."""
+    params_str = build_search_params(
+        query="laptop", page=1, category_sc=None, pmin=1_000_000, pmax=5_000_000
+    )
+    params = dict(parse_qsl(params_str))
+    assert params["pmin"] == "1000000"
+    assert params["pmax"] == "5000000"
+
+
+def test_build_search_payload_with_shop_tier(sample_contract):
+    """Verify payload carries shop_tier through to variables params."""
+    payload = build_search_payload(
+        contract=sample_contract,
+        query="kulkas",
+        page=1,
+        category_sc=None,
+        shop_tier=1,
+    )
+    params = dict(parse_qsl(payload["variables"]["params"]))
+    assert params["shop_tier"] == "1"
+    assert "sc" not in params

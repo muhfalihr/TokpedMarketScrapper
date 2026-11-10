@@ -103,12 +103,18 @@ class SearchProduct(BaseModel):
     url: str
     price: int | None = None
     original_price_raw: str | None = None
+    original_price: int | None = Field(default=None, gt=0)
     discount_percent: float | None = None
     shop_id: str | None = None
     shop_name: str | None = None
     shop_city: str | None = None
+    shop_tier: int | None = None
     rating: float | None = None
     stock: int | None = None
+    sold_label: str | None = None
+    sold_count_floor: int | None = Field(default=None, ge=0)
+    is_official: bool | None = None
+    is_ad: bool | None = None
     category: SearchCategory = Field(default_factory=SearchCategory)
     raw: dict = Field(default_factory=dict)
 

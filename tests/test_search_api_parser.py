@@ -13,7 +13,9 @@ from laptop_market_scraper.models import (
 from laptop_market_scraper.parsers.search_api import (
     SearchGraphQLError,
     SearchSchemaError,
+    parse_idr_price,
     parse_search_response,
+    parse_sold_label,
 )
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures" / "search_api"
@@ -231,3 +233,49 @@ def test_parse_search_response_empty_products():
     assert result.total_data == 0
     assert result.products == ()
 
+
+
+def test_parse_sold_label_variants():
+    """Verify sold label parsing into numeric floor values."""
+    assert parse_sold_label("19 terjual") == 19
+    assert parse_sold_label("100+ terjual") == 100
+    assert parse_sold_label("1,2jt terjual") == 1_200_000
+    assert parse_sold_label("2rb terjual") == 2000
+    assert parse_sold_label(None) is None
+    assert parse_sold_label("") is None
+    assert parse_sold_label("Bisa COD") is None
+
+
+def test_parse_idr_price_variants():
+    """Verify formatted IDR price parsing."""
+    assert parse_idr_price("Rp120.000") == 120000
+    assert parse_idr_price("Rp1.735.000") == 1735000
+    assert parse_idr_price("Rp 46.451") == 46451
+    assert parse_idr_price(None) is None
+    assert parse_idr_price("") is None
+    assert parse_idr_price("diskon") is None
+
+
+def test_parse_search_response_new_catalog_fields():
+    """Verify catalog enrichment fields extracted from fixture page 1."""
+    with open(FIXTURES_DIR / "page_1.json", encoding="utf-8") as f:
+        payload = json.load(f)
+
+    result = parse_search_response(payload, query="laptop", page=1, rows=60)
+
+    p0 = result.products[0]
+    assert p0.sold_label == "19 terjual"
+    assert p0.sold_count_floor == 19
+    assert p0.original_price == 120000
+    assert p0.shop_tier == 2
+    assert p0.is_official is True  # badge.url contains official_store
+    assert p0.is_ad in (True, False, None)  # organic listing -> False
+
+    # At least one organic product in the fixture
+    assert any(p.is_ad is False for p in result.products)
+
+    # Every product with a credibility label has a matching numeric floor
+    labeled = [p for p in result.products if p.sold_label]
+    assert labeled, "fixture should contain sold labels"
+    for p in labeled:
+        assert p.sold_count_floor is not None

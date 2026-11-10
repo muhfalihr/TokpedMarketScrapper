@@ -1,0 +1,69 @@
+# Multi-category catalog collect seeds (replicates yusepahmad/data-tokped-pml v2 approach).
+#
+# search.category_sc: null -> no category filter (all categories).
+# tiers: shop_tier search filter values — 2 = Official Store, 1 = Gold Merchant
+#        (non-official). Pairing each keyword with both tiers balances the
+#        official/non-official mix that relevance sort would otherwise skew.
+# Each keyword x tier pair paginates up to max_pages_per_task pages of `rows` products.
+# 45 keywords x 2 tiers x 2 pages x 60 rows ~ 10,800 rows before dedup.
+
+search:
+  rows: 60
+  category_sc: null
+  sort_code: "23"          # relevance
+  max_pages_per_task: 2
+
+tiers:
+  - 2   # Official Store
+  - 1   # Gold Merchant (non-official)
+
+keywords:
+  # Elektronik & komputer
+  - iphone
+  - samsung galaxy
+  - xiaomi
+  - laptop asus
+  - laptop lenovo
+  - laptop
+  - smart tv
+  - kamera canon
+  - printer
+  - power bank
+  - headphone bluetooth
+  # Perabot rumah tangga
+  - kulkas
+  - mesin cuci
+  - ac 1 pk
+  - blender
+  - rice cooker
+  # Furnitur & dekorasi
+  - kasur
+  - lampu led
+  - kursi kantor
+  - meja belajar
+  # Fashion
+  - sepatu running
+  - tas ransel
+  - jam tangan pria
+  - kemeja pria
+  - gamis
+  # Kecantikan & kesehatan
+  - serum wajah
+  - lipstik
+  - parfum
+  - vitamin c
+  - masker
+  # Ibu & anak
+  - popok bayi
+  - susu formula
+  - mainan anak
+  # Olahraga & hobi
+  - sepeda
+  - raket badminton
+  - yoga mat
+  # Dapur & makanan
+  - panci
+  - kopi bubuk
+  - minyak goreng
+  - teh celup
+  - cokelat bubuk

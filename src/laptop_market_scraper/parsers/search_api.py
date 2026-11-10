@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Mapping
 from typing import Any
 
@@ -11,8 +12,106 @@ logger = logging.getLogger(__name__)
 __all__ = (
     "SearchGraphQLError",
     "SearchSchemaError",
+    "parse_idr_price",
     "parse_search_response",
+    "parse_sold_label",
 )
+
+_SOLD_LABEL_RE = re.compile(r"^\s*([\d.,]+)\s*(rb|jt)?\s*\+?\s*terjual", re.IGNORECASE)
+_IDR_PRICE_RE = re.compile(r"rp\s*([\d.,]+)", re.IGNORECASE)
+
+
+def parse_sold_label(label: str | None) -> int | None:
+    """Parse a Tokopedia sold label into its numeric floor value.
+
+    Examples:
+        "19 terjual" -> 19
+        "100+ terjual" -> 100
+        "1,2jt terjual" -> 1200000 (jt = juta/million)
+        "2rb terjual" -> 2000 (rb = ribu/thousand)
+
+    Args:
+        label: Raw sold label text (e.g. from labelGroups ri_product_credibility).
+
+    Returns:
+        Integer floor value of the sold count, or None when unparsable.
+    """
+    if not label or not isinstance(label, str):
+        return None
+
+    match = _SOLD_LABEL_RE.match(label)
+    if match is None:
+        return None
+
+    number_text = match.group(1).replace(",", ".")
+    try:
+        value = float(number_text)
+    except ValueError:
+        return None
+
+    lowered = label.lower()
+    if "jt" in lowered:
+        value *= 1_000_000
+    elif "rb" in lowered:
+        value *= 1_000
+
+    return int(value)
+
+
+def parse_idr_price(text: str | None) -> int | None:
+    """Parse a formatted IDR price string (e.g. "Rp120.000") into an integer.
+
+    Args:
+        text: Formatted price string.
+
+    Returns:
+        Integer rupiah value, or None when unparsable.
+    """
+    if not text or not isinstance(text, str):
+        return None
+
+    match = _IDR_PRICE_RE.search(text)
+    if match is None:
+        return None
+
+    digits = match.group(1).replace(".", "").replace(",", "")
+    try:
+        return int(digits)
+    except ValueError:
+        return None
+
+
+def _extract_sold_label(item: Mapping[str, Any]) -> str | None:
+    """Extract sold label from labelGroups position 'ri_product_credibility'."""
+    for group in item.get("labelGroups") or []:
+        if not isinstance(group, Mapping):
+            continue
+        if group.get("position") == "ri_product_credibility":
+            title = group.get("title")
+            return str(title) if title else None
+    return None
+
+
+def _extract_is_official(item: Mapping[str, Any], shop_tier: int | None) -> bool | None:
+    """Detect official-store status from badge URL or shop tier."""
+    badge = item.get("badge")
+    if isinstance(badge, Mapping):
+        badge_url = str(badge.get("url") or "")
+        if "official_store" in badge_url:
+            return True
+    if shop_tier is not None:
+        return shop_tier == 2
+    return None
+
+
+def _extract_is_ad(item: Mapping[str, Any]) -> bool | None:
+    """Detect advertisement placement from the ads object."""
+    ads = item.get("ads")
+    if not isinstance(ads, Mapping):
+        return None
+    ads_id = str(ads.get("id") or "")
+    tag = ads.get("tag")
+    return bool(ads_id) or (isinstance(tag, int) and tag != 0)
 
 
 class SearchGraphQLError(Exception):
@@ -118,6 +217,7 @@ def parse_search_response(
             price = int(p_num) if p_num is not None else None
             orig = price_dict.get("original")
             original_price_raw = str(orig) if orig is not None else None
+            original_price = parse_idr_price(original_price_raw)
             disc = price_dict.get("discountPercentage")
             try:
                 discount_percent = float(disc) if disc is not None else None
@@ -126,6 +226,7 @@ def parse_search_response(
         else:
             price = None
             original_price_raw = None
+            original_price = None
             discount_percent = None
 
         # Shop parsing
@@ -137,10 +238,24 @@ def parse_search_response(
             shop_name = str(s_name) if s_name is not None else None
             s_city = shop_dict.get("city")
             shop_city = str(s_city) if s_city is not None else None
+            s_tier = shop_dict.get("tier")
+            try:
+                shop_tier = int(s_tier) if s_tier is not None else None
+            except (ValueError, TypeError):
+                shop_tier = None
         else:
             shop_id = None
             shop_name = None
             shop_city = None
+            shop_tier = None
+
+        # Sold label (bucketed, e.g. "100+ terjual") and numeric floor
+        sold_label = _extract_sold_label(item)
+        sold_count_floor = parse_sold_label(sold_label)
+
+        # Official-store and advertisement flags
+        is_official = _extract_is_official(item, shop_tier)
+        is_ad = _extract_is_ad(item)
 
         # Rating parsing
         r_val = item.get("rating")
@@ -209,12 +324,18 @@ def parse_search_response(
                 url=url,
                 price=price,
                 original_price_raw=original_price_raw,
+                original_price=original_price,
                 discount_percent=discount_percent,
                 shop_id=shop_id,
                 shop_name=shop_name,
                 shop_city=shop_city,
+                shop_tier=shop_tier,
                 rating=rating,
                 stock=stock,
+                sold_label=sold_label,
+                sold_count_floor=sold_count_floor,
+                is_official=is_official,
+                is_ad=is_ad,
                 category=category,
                 raw=raw_item,
             )

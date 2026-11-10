@@ -13,6 +13,9 @@ from laptop_market_scraper.audit import (
     audit_features,
     export_feature_audit,
 )
+from laptop_market_scraper.catalog.enrich import CatalogEnrichSpider
+from laptop_market_scraper.catalog.spider import CatalogCollectSpider
+from laptop_market_scraper.catalog.store import CatalogStore
 from laptop_market_scraper.manifest import generate_manifest, write_manifest
 from laptop_market_scraper.ml_freeze import freeze_ml_dataset
 from laptop_market_scraper.ml_readiness import (
@@ -85,6 +88,108 @@ def export(
 
     store.export_processed(csv_path, parquet_path)
     print(f"Exported to {csv_path} and {parquet_path}")
+
+
+@app.command()
+def catalog_collect(
+    seed_config: Path = typer.Option(
+        "config/catalog_seeds.yaml", help="Path to multi-category catalog seed configuration"
+    ),
+    crawl_dir: Path = typer.Option("crawl_state/catalog", help="Directory for catalog crawl state"),
+    max_pages: int = typer.Option(None, help="Maximum pages per keyword x tier task"),
+    keywords: str = typer.Option(
+        None, help="Comma-separated keyword filter (default: all keywords in config)"
+    ),
+):
+    """Collect multi-category products from search (fast, no product page visits)."""
+    run_id = _generate_run_id()
+
+    crawl_dir.mkdir(parents=True, exist_ok=True)
+    db_path = crawl_dir / "catalog.db"
+    store = CatalogStore(db_path, data_dir=crawl_dir)
+
+    keywords_filter = None
+    if keywords:
+        keywords_filter = tuple(k.strip() for k in keywords.split(",") if k.strip())
+
+    spider = CatalogCollectSpider(
+        crawl_run_id=run_id,
+        store=store,
+        seed_config=str(seed_config),
+        max_pages=max_pages,
+        keywords_filter=keywords_filter,
+    )
+
+    spider.start()
+
+    total = store.count_products(run_id)
+    print(f"Collect run {run_id}: {total} unique products saved to {db_path}")
+
+
+@app.command()
+def catalog_enrich(
+    crawl_dir: Path = typer.Option("crawl_state/catalog", help="Directory containing catalog database"),
+    run_id: str = typer.Option(..., help="Catalog collect run ID to enrich"),
+    limit: int = typer.Option(None, help="Maximum products to enrich this invocation"),
+    retry_failed: bool = typer.Option(False, help="Retry previously failed enrichments"),
+):
+    """Enrich catalog products with review_count and sold from product pages."""
+    db_path = crawl_dir / "catalog.db"
+    if not db_path.exists():
+        print(f"Catalog database not found: {db_path}")
+        raise typer.Exit(code=1)
+
+    store = CatalogStore(db_path, data_dir=crawl_dir)
+
+    spider = CatalogEnrichSpider(
+        crawl_run_id=run_id,
+        store=store,
+        limit=limit,
+        retry_failed=retry_failed,
+    )
+
+    spider.start()
+
+    stats = store.enrichment_stats(run_id)
+    print(f"Enrichment stats for {run_id}: {stats}")
+
+
+@app.command()
+def catalog_export(
+    crawl_dir: Path = typer.Option("crawl_state/catalog", help="Directory containing catalog database"),
+    run_id: str = typer.Option(..., help="Catalog run ID to export"),
+    output_dir: Path = typer.Option("data/processed", help="Directory for exported dataset"),
+    require_enrichment: bool = typer.Option(
+        False,
+        help="Export only PDP-enriched rows (reference-dataset semantics: review_count "
+        "and sold always from the product page)",
+    ),
+):
+    """Export merged catalog data to the reference-schema CSV."""
+    db_path = crawl_dir / "catalog.db"
+    if not db_path.exists():
+        print(f"Catalog database not found: {db_path}")
+        raise typer.Exit(code=1)
+
+    store = CatalogStore(db_path, data_dir=crawl_dir)
+
+    if store.count_products(run_id) == 0:
+        print(f"No products found for run {run_id}")
+        raise typer.Exit(code=1)
+
+    unenriched = len(store.pending_enrichment(run_id))
+    if unenriched and not require_enrichment:
+        print(
+            f"Warning: {unenriched} products not yet enriched — their review_count "
+            "will be empty and sold falls back to the bucket floor. "
+            "Run catalog-enrich first, or use --require-enrichment."
+        )
+
+    run_out_dir = output_dir / run_id
+    csv_path = run_out_dir / "tokopedia_products_v2.csv"
+
+    store.export_products_csv(csv_path, run_id, require_enrichment=require_enrichment)
+    print(f"Exported to {csv_path}")
 
 
 @app.command()
