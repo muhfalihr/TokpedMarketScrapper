@@ -5,7 +5,7 @@
 #        (non-official). Pairing each keyword with both tiers balances the
 #        official/non-official mix that relevance sort would otherwise skew.
 # Each keyword x tier pair paginates up to max_pages_per_task pages of `rows` products.
-# 45 keywords x 2 tiers x 2 pages x 60 rows ~ 10,800 rows before dedup.
+# 41 keywords x 2 tiers x N pages x 60 rows (N=1 ~ 4.9k, N=3 ~ 10-15k before dedup).
 
 search:
   rows: 60

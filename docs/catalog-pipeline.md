@@ -11,7 +11,7 @@ enrichment halaman produk untuk `review_count` dan `sold` exact.
 
 ```text
 config/catalog_seeds.yaml
-  (45 keyword × shop_tier 2/1 × 2 halaman)
+  (41 keyword × shop_tier 2/1 × hingga 3 halaman)
         │
         ▼
 CatalogCollectSpider ── POST GraphQL searchProductV5 ──► simpan langsung
@@ -40,7 +40,7 @@ mix 50/50 (60 toko resmi tier 2, 60 Gold Merchant tier 3).
 # 0. (Opsional) Smoke test kecil dulu: 1 keyword × 2 tier × 1 halaman
 tokped-scraper catalog-collect --keywords "iphone" --max-pages 1 --crawl-dir crawl_state/catalog-smoke
 
-# 1. Collect — 45 keyword × 2 tier × 2 halaman ≈ 8–10 ribu produk unik (±10 menit)
+# 1. Collect — 41 keyword × 2 tier × N halaman (N=1 ≈ 5 ribu unik per ±10 menit)
 tokped-scraper catalog-collect --crawl-dir crawl_state/catalog
 
 # 2. Enrich — review_count + sold exact dari halaman produk.
