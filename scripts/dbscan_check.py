@@ -109,9 +109,9 @@ def find_dataset() -> Path:
     if not candidates:
         raise SystemExit(
             "Belum ada export. Jalankan:\n"
-            "  laptop-scraper catalog-collect\n"
-            "  laptop-scraper catalog-enrich --run-id <id>\n"
-            "  laptop-scraper catalog-export --run-id <id> --require-enrichment"
+            "  tokped-scraper catalog-collect\n"
+            "  tokped-scraper catalog-enrich --run-id <id>\n"
+            "  tokped-scraper catalog-export --run-id <id> --require-enrichment"
         )
     return candidates[-1]
 

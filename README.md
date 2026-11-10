@@ -13,9 +13,9 @@ pip install -e ".[dev]"
 ## Quickstart — Pipeline Katalog (utama)
 
 ```bash
-laptop-scraper catalog-collect --crawl-dir crawl_state/catalog            # 1. kumpulkan (±10 menit)
-laptop-scraper catalog-enrich --run-id <run-id> --limit 500              # 2. enrich (ulangi sampai habis)
-laptop-scraper catalog-export --run-id <run-id> --require-enrichment     # 3. ekspor CSV skema referensi
+tokped-scraper catalog-collect --crawl-dir crawl_state/catalog            # 1. kumpulkan (±10 menit)
+tokped-scraper catalog-enrich --run-id <run-id> --limit 500              # 2. enrich (ulangi sampai habis)
+tokped-scraper catalog-export --run-id <run-id> --require-enrichment     # 3. ekspor CSV skema referensi
 python scripts/k_mean.py                                                  # 4. clustering
 ```
 

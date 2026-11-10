@@ -38,21 +38,21 @@ mix 50/50 (60 toko resmi tier 2, 60 Gold Merchant tier 3).
 
 ```bash
 # 0. (Opsional) Smoke test kecil dulu: 1 keyword × 2 tier × 1 halaman
-laptop-scraper catalog-collect --keywords "iphone" --max-pages 1 --crawl-dir crawl_state/catalog-smoke
+tokped-scraper catalog-collect --keywords "iphone" --max-pages 1 --crawl-dir crawl_state/catalog-smoke
 
 # 1. Collect — 45 keyword × 2 tier × 2 halaman ≈ 8–10 ribu produk unik (±10 menit)
-laptop-scraper catalog-collect --crawl-dir crawl_state/catalog
+tokped-scraper catalog-collect --crawl-dir crawl_state/catalog
 
 # 2. Enrich — review_count + sold exact dari halaman produk.
 #    Batch dengan --limit; jalankan berulang sampai pending habis (otomatis resume).
 #    --retry-failed untuk mencoba ulang yang gagal.
-laptop-scraper catalog-enrich --run-id <run-id> --crawl-dir crawl_state/catalog --limit 500
+tokped-scraper catalog-enrich --run-id <run-id> --crawl-dir crawl_state/catalog --limit 500
 
 # 3. Export — CSV 27 kolom skema referensi.
 #    --require-enrichment: hanya baris yang sudah ter-enrich PDP
 #    (review_count & sold selalu angka exact — semantik identik dataset referensi;
 #    wajib untuk notebook DBSCAN Colab agar tidak ada NaN).
-laptop-scraper catalog-export --run-id <run-id> --crawl-dir crawl_state/catalog --require-enrichment
+tokped-scraper catalog-export --run-id <run-id> --crawl-dir crawl_state/catalog --require-enrichment
 
 # 4. Clustering K-Means (fallback otomatis ke dataset lama bila export tidak ada)
 python scripts/k_mean.py

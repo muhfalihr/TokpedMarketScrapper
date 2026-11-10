@@ -37,3 +37,6 @@ scripts/test_replay.py
 # Generated release artifacts & review ledgers (dibuat ulang oleh scripts/prepare_kaggle_release.py)
 kaggle/
 reviews/
+
+# Ghost dir sisa rename (hapus manual setelah IDE ditutup)
+src/laptop_market_scrapper/

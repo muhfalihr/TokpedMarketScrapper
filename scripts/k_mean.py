@@ -59,9 +59,9 @@ def find_dataset() -> tuple[pd.DataFrame, str]:
 
     raise SystemExit(
         "Dataset tidak ditemukan. Jalankan dulu:\n"
-        "  laptop-scraper catalog-collect\n"
-        "  laptop-scraper catalog-enrich --run-id <id>\n"
-        "  laptop-scraper catalog-export --run-id <id>\n"
+        "  tokped-scraper catalog-collect\n"
+        "  tokped-scraper catalog-enrich --run-id <id>\n"
+        "  tokped-scraper catalog-export --run-id <id>\n"
         "atau berikan path CSV: python scripts/k_mean.py <path.csv>"
     )
 

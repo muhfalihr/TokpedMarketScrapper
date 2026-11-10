@@ -21,7 +21,7 @@ dev = [
 ]
 
 [project.scripts]
-laptop-scraper = "laptop_market_scraper.cli:app"
+tokped-scraper = "tokped_market_scrapper.cli:app"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

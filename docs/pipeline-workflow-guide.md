@@ -1,19 +1,19 @@
 # End-to-End Pipeline Guide: From Crawl to Kaggle Push
 
-Panduan alur kerja lengkap (End-to-End Workflow) repositori **TokpedMarketScrapper** menggunakan CLI `laptop-scraper` mulai dari pengambilan data (*crawling/scraping*), pembersihan dataset (*ML Freeze & Audit*), hingga publikasi rilis ke **Kaggle Datasets**.
+Panduan alur kerja lengkap (End-to-End Workflow) repositori **TokpedMarketScrapper** menggunakan CLI `tokped-scraper` mulai dari pengambilan data (*crawling/scraping*), pembersihan dataset (*ML Freeze & Audit*), hingga publikasi rilis ke **Kaggle Datasets**.
 
 ---
 
 ## 📋 Prerequisites & Setup
 
-Sebelum menjalankan pipeline, pastikan virtual environment Python sudah aktif dan package `laptop-scraper` terinstall:
+Sebelum menjalankan pipeline, pastikan virtual environment Python sudah aktif dan package `tokped-scraper` terinstall:
 
 ```bash
 # Buat dan aktifkan virtual environment
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .\.venv\Scripts\Activate.ps1
 
-# Install package beserta CLI laptop-scraper
+# Install package beserta CLI tokped-scraper
 pip install -e .
 ```
 
@@ -32,11 +32,11 @@ pip install -e .
 Mengambil data listing pencarian produk laptop dari Tokopedia ke SQLite DB & file raw JSONL.
 
 ```bash
-# 1. Jalankan crawl pencarian laptop menggunakan CLI laptop-scraper
-laptop-scraper crawl --seed-config config/seeds.yaml --crawl-dir crawl_state/smoke-250 --max-pages 50
+# 1. Jalankan crawl pencarian laptop menggunakan CLI tokped-scraper
+tokped-scraper crawl --seed-config config/seeds.yaml --crawl-dir crawl_state/smoke-250 --max-pages 50
 
 # 2. Evaluasi kesiapan data hasil crawl (ML Readiness Audit)
-laptop-scraper audit-ml-readiness --run-id 20260823T043405Z-2m8c6r37 --crawl-dir crawl_state/smoke-250
+tokped-scraper audit-ml-readiness --run-id 20260823T043405Z-2m8c6r37 --crawl-dir crawl_state/smoke-250
 ```
 
 ---
@@ -46,7 +46,7 @@ laptop-scraper audit-ml-readiness --run-id 20260823T043405Z-2m8c6r37 --crawl-dir
 Proses ini melakukan klasifikasi semantic eligibility, pembersihan harga down payment, resolusi missing value `review_count`, pembuatan matriks `R1` & `R2`, dan evaluasi manual review queue.
 
 ```bash
-laptop-scraper freeze-ml-dataset \
+tokped-scraper freeze-ml-dataset \
   --run-id 20260823T043405Z-2m8c6r37 \
   --config config/ml_freeze.yaml \
   --output-dir data/ml/smoke-250 \
